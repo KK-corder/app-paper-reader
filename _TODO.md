@@ -12,7 +12,7 @@
 
 ## 🟡 そのあと
 
-- [ ] （本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す。承認済みのリダイレクト URI は `https://kk-corder.github.io/app-paper-reader/` と `…/index.html` の両方（ログイン後の戻り先が開いた URL のままのため）
+- [ ] （本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す（手順 `~/Dev/.claude/skills/mobile-pwa/references/google-oauth.md`）。承認済みのリダイレクト URI は `https://kk-corder.github.io/app-paper-reader/` と `…/index.html` の両方（ログイン後の戻り先が開いた URL のままのため）
 - [ ] （本人に確かめてから Claude）GitHub に `app-paper-reader` を作って Pages で公開し、`config.js` にクライアント ID を入れる
 - [ ] （WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（要件 §3）
 - [ ] （本人）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）
