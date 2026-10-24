@@ -1,4 +1,4 @@
-export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 export const validSession = (session, now = Date.now()) => Boolean(session?.accessToken && Number.isFinite(session.expiresAt) && session.expiresAt > now);
 
 export function parseRedirect(hash, pending, now = Date.now()) {

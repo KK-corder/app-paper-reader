@@ -41,7 +41,7 @@ input, select { width: 100%; padding: 10px; min-height: 44px; }
 .stars { color: #8d651a; letter-spacing: 1px; }
 .no-pdf { color: #8a4530; }
 .reader-toolbar h1 { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.reader-toolbar button { white-space: nowrap; }
+.reader-toolbar button { white-space: nowrap; flex-shrink: 0; }
 .reader-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, var(--pdf-width)) 12px minmax(0, 1fr); overflow: hidden; position: relative; }
 .pdf-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #dfe4e4; overflow: hidden; }
 .pdf-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: #edf1f0; padding: 3px 8px; font-size: 13px; flex-shrink: 0; }
@@ -88,6 +88,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; padding: 
   .toolbar { gap: 6px; }
   .toolbar h1 { font-size: 17px; }
   .reader-toolbar h1 { font-size: 13px; }
+  .reader-toolbar button { font-size: 13px; padding: 7px 8px; }
   .toolbar-actions { gap: 5px; }
   .toolbar-actions button { padding: 7px 9px; font-size: 14px; }
 }

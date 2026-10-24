@@ -20,6 +20,7 @@ export class Node {
   setAttribute(name, value) { this.attributes[name] = String(value); }
   getAttribute(name) { return this.attributes[name]; }
   addEventListener(type, fn) { if (!this.listeners.has(type)) this.listeners.set(type, []); this.listeners.get(type).push(fn); }
+  removeEventListener(type, fn) { this.listeners.set(type, (this.listeners.get(type) || []).filter(listener => listener !== fn)); }
   async emit(type, values = {}) { for (const fn of this.listeners.get(type) || []) await fn({ preventDefault() {}, touches: [], ...values }); }
   getBoundingClientRect() { return { left: 0, top: 0, width: this.clientWidth, height: this.clientHeight }; }
   setPointerCapture() {}
@@ -45,6 +46,7 @@ export function makeDOM(search = '?demo=1', storage = new Map()) {
   const settings = [document.createElement('button'), document.createElement('button')];
   document.querySelectorAll = selector => selector === '.open-settings' ? settings : [];
   const window = {
+    listeners: new Map(), addEventListener: Node.prototype.addEventListener, removeEventListener: Node.prototype.removeEventListener, emit: Node.prototype.emit,
     location: { search, hash: '', pathname: '/PaperReader/', origin: 'http://localhost:8080' },
     history: { replaceState() {} },
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },

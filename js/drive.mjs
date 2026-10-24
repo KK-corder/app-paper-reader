@@ -49,6 +49,38 @@ export class Drive {
     if (!id) throw new DriveError(404, 'papers.json が見つかりません。');
     return this.request(`files/${encodeURIComponent(id)}`, { alt: 'media' }, signal);
   }
+  async appendReading(event) {
+    if (!event?.id || !['未読', '読了'].includes(event.read_status) || !Number.isFinite(Date.parse(event.at)) || !event.at.endsWith('+09:00')) {
+      throw new Error('読了の記録の形式を確認してください。');
+    }
+    const { reader } = await this.folders();
+    const id = await this.find(reader, 'reading_log.json');
+    let log = { events: [] };
+    if (id) {
+      try { log = await this.request(`files/${encodeURIComponent(id)}`, { alt: 'media' }); }
+      catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        throw new Error('reading_log.json が壊れているため、上書きせず送信を止めました。');
+      }
+      if (!log || !Array.isArray(log.events)) throw new Error('reading_log.json の events を読めないため、上書きせず送信を止めました。');
+      // A write may have succeeded even when its response was lost.
+      if (log.events.some(row => row?.id === event.id && row.read_status === event.read_status && row.at === event.at)) return;
+    }
+    log.events.push({ id: event.id, read_status: event.read_status, at: event.at });
+    let body = JSON.stringify(log);
+    let contentType = 'application/json';
+    if (!id) {
+      const boundary = `paper_reader_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      const metadata = { name: 'reading_log.json', parents: [reader], mimeType: 'application/json' };
+      body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--\r\n`;
+      contentType = `multipart/related; boundary=${boundary}`;
+    }
+    const url = id ? `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    const fetcher = this.fetcher;
+    const response = await fetcher(url, { method: id ? 'PATCH' : 'POST', headers: { ...this.headers(), 'Content-Type': contentType }, body, cache: 'no-store' });
+    if (response.status === 401) this.onExpired();
+    if (!response.ok) throw new DriveError(response.status, `読了の記録を送信できませんでした（${response.status}）。`);
+  }
   async pdfId(paper, signal) {
     if (!paper.pdf) return null;
     if (paper.pdf.drive_id) return paper.pdf.drive_id;

@@ -15,6 +15,12 @@
 
 ---
 
+## 2026-10-24 読了はドライブの reading_log.json に追記し、Mac が Notion に戻す
+- 決定: アプリは `drive.file` を足して `survey/_reader/reading_log.json` に追記だけする。Mac（WorkSpace）が 30 分ごとに読んで Notion の Read Status を書き換え、papers.json を書き出し直す。押した時刻が papers.json の `generated` より新しい間は、端末の値で表示を上書きする
+- 理由: Notion のキーを iPhone に置かない（要件 §3）。`drive.file` ならアプリが作ったファイルしか書けず、PDF や papers.json を壊せない
+- 却下した案: `drive`（全部書ける。広すぎる）／Notion を iPhone から直接呼ぶ（キーを置くことになる）
+- 決めた人: Claude（本人の依頼「読了ボタンと Notion への同期」の範囲内の方式の選択）
+
 ## 2026-10-24 ログインはリダイレクトとポップアップの 2 方式を持ち、設定で切り替える
 - 決定: 既定は同じ画面のリダイレクト（OAuth 2.0 のトークンを URL のフラグメントで受け取る）。Google Identity Services のポップアップも選べるようにする
 - 理由: iPhone のホーム画面版から Google のログインへ移ると、Safari の別画面に渡されて戻ってこない報告がある（iOS の版で違い、実機でしか分からない）。どちらも駄目なときは Safari のタブで使える

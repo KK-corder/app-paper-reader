@@ -12,12 +12,17 @@ export function createStore(storage, onError = () => {}) {
     folders: saved.folders && typeof saved.folders === 'object' ? saved.folders : {},
     pages: saved.pages && typeof saved.pages === 'object' ? saved.pages : {},
     panelWidth: clamp(Number(saved.panelWidth) || 50, 25, 75),
+    reading: {
+      pending: Array.isArray(saved.reading?.pending) ? saved.reading.pending : [],
+      overrides: saved.reading?.overrides && typeof saved.reading.overrides === 'object' ? saved.reading.overrides : {},
+      lastAt: Number(saved.reading?.lastAt) || 0,
+    },
   };
   return {
     state,
     save() {
       try { storage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
-      catch { onError('端末に保存できません。ページやログイン状態は、閉じると失われます。'); return false; }
+      catch { onError('端末に保存できません。読了の記録・ページ・ログイン状態は、閉じると失われます。'); return false; }
     },
     clearReading() { state.folders = {}; state.pages = {}; state.panelWidth = 50; this.save(); },
     page(id) { return Math.max(1, Math.floor(Number(state.pages[id]) || 1)); },

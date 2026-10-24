@@ -16,7 +16,7 @@
 - [x] ~~（本人に確かめてから Claude）GitHub に `app-paper-reader` を作って Pages で公開し、`config.js` にクライアント ID を入れる~~ → 2026-10-24 公開（https://kk-corder.github.io/app-paper-reader/）。公開先でデモと PDF の表示を Chrome で確認
 - [x] ~~（WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（依頼 `~/Dev/_system/docs/20261024-論文リーダー-書き出し要件.md`）~~ → 2026-10-24 WorkSpace が作った（毎朝 7:50）。Claude が中身を点検: 121 本・項目と型の欠けなし・PDF と drive_id が全部ディスクの実物と一致・アプリの読み込みで落ちない
 - [x] ~~（本人）iPhone で一覧と論文を開く~~ → 10/24 本人「予想以上にいいかんじ」。Safari の fetch の呼び方のバグを直した（`fc1be99`）。新しい論文を一番上から・文字を一回り小さく（10/24）
-- [ ] 読了ボタンを Codex に作らせてレビューする（`docs/briefs/20261024-02-read-button.md`）
+- [x] ~~読了ボタンを Codex に作らせてレビューする（`docs/briefs/20261024-02-read-button.md`）~~ → 2026-10-24 修正なしで通過（テスト 36 件。デモの 844×390・390×844 で切り替え・基本情報・一覧の表示と並び・再読み込み後も残る・上の帯が重ならないを Chrome で確認）。1 回目は Codex の上限で止まり、解除後に再実行
 - [ ] （本人）Google Cloud の「データアクセス」に `.../auth/drive.file` を足し、iPhone でログインし直す（読了ボタンができてから）
 - [ ] （WorkSpace 側）reading_log.json を読んで Notion の Read Status に戻すスクリプト（依頼 `~/Dev/_system/docs/20261024-論文リーダー-読了の同期要件.md`）
 - [ ] （本人・書き出しができたら）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）

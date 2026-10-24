@@ -3,6 +3,7 @@ import { clamp, errorMessage, normalizeLibrary, selectPapers } from './core.mjs'
 import { createStore } from './storage.mjs';
 import { consumeRedirect, DRIVE_SCOPE, loadGIS, redirectURL, validSession } from './login.mjs';
 import { Drive } from './drive.mjs';
+import { createReading } from './reading.mjs';
 import { PdfViewer } from './pdf-viewer.mjs';
 
 export function element(document, tag, text, className) {
@@ -23,6 +24,7 @@ export function renderInformation(document, paper, summary, details, clipboard) 
     summary.append(block);
   }
   const dl = el('dl');
+  let readStatusNode;
   const fields = [['題', paper.title], ['和題', paper.title_jp], ['著者', paper.authors], ['年', paper.year], ['会場', paper.venue], ['Type', paper.type], ['DOI', paper.doi], ['タグ', paper.tags.join('・')], ['Importance', paper.importance], ['Read Status', paper.read_status]];
   for (const [name, value] of fields) {
     const dd = el('dd');
@@ -33,6 +35,7 @@ export function renderInformation(document, paper, summary, details, clipboard) 
       link.rel = 'noopener noreferrer';
       dd.append(link);
     } else dd.textContent = value === null || value === '' ? '—' : String(value);
+    if (name === 'Read Status') readStatusNode = dd;
     dl.append(el('dt', name), dd);
   }
   dl.append(el('dt', 'BibTeX'));
@@ -49,6 +52,7 @@ export function renderInformation(document, paper, summary, details, clipboard) 
   bibtex.append(copy, message);
   dl.append(bibtex);
   details.append(dl);
+  return readStatusNode;
 }
 
 export async function startApp({ window, document, fetcher = fetch, Viewer = PdfViewer, clientId = CLIENT_ID }) {
@@ -63,12 +67,14 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   let previousView = 'login';
   let library = { papers: [], generated: '' };
   let activePaper = null;
+  let readStatusNode;
   let epoch = 0;
   let listingController;
   let pdfController;
   let expiryTimer;
   let popupClient;
   let popupPreparing;
+  let readingError = '';
   const pdfAvailability = new Map();
   const sessionGood = () => validSession(store.state.session);
   const pageKey = id => `${demo ? 'demo:' : ''}${id}`;
@@ -93,6 +99,27 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     if (view === 'settings') settingsUI();
   }
   const drive = new Drive(store, expired, fetcher);
+  const reading = createReading(store, drive, { demo,
+    onChange: () => { drawList(); if (activePaper) drawReading(); readingUI(); },
+    onError: (message, error) => {
+      if (!message && $('notice').textContent === readingError) notify('');
+      readingError = message;
+      readingUI();
+      if (message) notify(message);
+      if (error?.status === 403 || error?.status === 401) $('session-banner').hidden = false;
+    },
+  });
+
+  function readingUI() {
+    const count = reading.pendingCount();
+    $('reading-pending').textContent = count ? `未送信の記録: ${count} 件` : '';
+    $('reading-error').textContent = readingError;
+  }
+  function drawReading() {
+    const paper = reading.paper(activePaper, library.generated);
+    $('read-toggle').textContent = paper.read_status === '読了' ? '未読に戻す' : '読了にする';
+    if (readStatusNode) readStatusNode.textContent = paper.read_status || '—';
+  }
   const viewer = new Viewer($('pdf-scroll'), $('pdf-pages'), {
     onPage: (page, total) => {
       $('page-counter').textContent = `${page} / ${total}`;
@@ -122,12 +149,14 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     store.save();
     $('session-banner').hidden = true;
     armExpiry();
+    const sending = reading.flush();
     if (activePaper && (view === 'reader' || (view === 'settings' && previousView === 'reader'))) {
       if (view === 'settings') settingsUI();
       notify('ログインしました。表示中の論文はそのまま読めます。');
       const id = pdfAvailability.get(activePaper.id);
       if (id) await viewer.open(drive.pdfSource(id), store.page(pageKey(activePaper.id)), false, true);
     } else await loadList();
+    await sending;
   }
   async function preparePopup() {
     if (!clientId || demo || popupClient) return;
@@ -136,7 +165,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       popupClient = oauth.initTokenClient({ client_id: clientId, scope: DRIVE_SCOPE,
         callback: response => {
           if (response.error || !response.access_token || !(Number(response.expires_in) > 0)) { notify('ログインできませんでした。設定から方式を変えて試してください。'); return; }
-          loggedIn({ accessToken: response.access_token, expiresAt: Date.now() + Number(response.expires_in) * 1000 });
+          return loggedIn({ accessToken: response.access_token, expiresAt: Date.now() + Number(response.expires_in) * 1000 });
         }, error_callback: () => notify('ログイン画面を開けないか、閉じられました。設定から方式を変えて試してください。'),
       });
     }).catch(error => notify(errorMessage(error))).finally(() => { popupPreparing = null; });
@@ -152,14 +181,14 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       const bytes = new Uint8Array(24);
       window.crypto.getRandomValues(bytes);
       const state = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-      store.state.pendingLogin = { state, createdAt: Date.now() };
+      store.state.pendingLogin = { state, createdAt: Date.now(), paperId: activePaper?.id || null };
       if (!store.save()) return;
       window.location.assign(redirectURL(clientId, window.location.origin + window.location.pathname, state));
     }
   }
 
   function drawList() {
-    const papers = selectPapers(library.papers, $('filter').value);
+    const papers = selectPapers(library.papers.map(paper => reading.paper(paper, library.generated)), $('filter').value);
     $('paper-list').replaceChildren();
     $('count').textContent = `${papers.length} 本 / ${library.papers.length} 本`;
     $('generated').textContent = library.generated ? `書き出し: ${library.generated}` : '書き出し日時: —';
@@ -174,7 +203,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       const tags = el('div', undefined, 'paper-tags');
       for (const tag of paper.tags) tags.append(el('span', tag, 'badge'));
       card.append(tags);
-      card.addEventListener('click', () => openPaper(paper));
+      card.addEventListener('click', () => openPaper(library.papers.find(item => item.id === paper.id)));
       $('paper-list').append(card);
     }
   }
@@ -264,7 +293,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     $('reader-title').textContent = paper.title || '—';
     $('page-counter').textContent = '— / —';
     $('zoom-label').textContent = '100%';
-    renderInformation(document, paper, $('summary-content'), $('details-content'), window.navigator.clipboard);
+    readStatusNode = renderInformation(document, reading.paper(paper, library.generated), $('summary-content'), $('details-content'), window.navigator.clipboard);
+    drawReading();
     $('summary-content').scrollTop = 0;
     $('details-content').scrollTop = 0;
     $('pdf-status').textContent = 'PDF を読み込み中…';
@@ -281,6 +311,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   function settingsUI() {
+    readingUI();
     $('login-state').textContent = demo ? 'デモ（ログイン不要）' : sessionGood() ? 'ログイン中' : 'ログインしていない';
     $('client-hint').textContent = !demo && !clientId ? 'config.js にクライアント ID を入れる' : '';
     $('settings-login').disabled = demo || !clientId;
@@ -292,6 +323,11 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   $('filter').addEventListener('input', drawList);
+  $('read-toggle').addEventListener('click', () => {
+    if (!activePaper) return;
+    const paper = reading.paper(activePaper, library.generated);
+    if (reading.record(paper.id, paper.read_status === '読了' ? '未読' : '読了')) return reading.flush();
+  });
   $('reload').addEventListener('click', loadList);
   for (const id of ['login-button', 'settings-login', 'session-login']) $(id).addEventListener('click', login);
   for (const button of document.querySelectorAll('.open-settings')) button.addEventListener('click', () => { previousView = view; settingsUI(); $('settings-message').textContent = ''; show('settings'); });
@@ -357,6 +393,9 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     $('settings-message').textContent = 'フォルダ ID・読んだページ・パネル幅を消しました。';
   });
   document.addEventListener('visibilitychange', () => { if (!demo && store.state.session && !sessionGood()) expired(); });
+  const online = () => reading.flush();
+  window.addEventListener('online', online);
+  const resumePaperId = store.state.pendingLogin?.paperId;
   const redirect = consumeRedirect(window.location, window.history, store);
   loginUI(redirect.error || 'Google アカウントでログインしてください。');
   $('demo-badge').hidden = !demo;
@@ -364,8 +403,13 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   armExpiry();
   if (demo || sessionGood()) await loadList();
   else { if (store.state.session) expired(); show('login'); }
+  if (!demo && redirect.session && resumePaperId) {
+    const paper = library.papers.find(paper => paper.id === resumePaperId);
+    if (paper) await openPaper(paper);
+  }
+  await reading.flush();
   if ('serviceWorker' in window.navigator) window.navigator.serviceWorker.register('./sw.js').catch(() => notify('アプリの殻を保存できませんでした。通信がある状態で利用してください。'));
-  return { store, viewer, openPaper, loadList, dispose() { clearTimeout(expiryTimer); listingController?.abort(); pdfController?.abort(); viewer.close(); } };
+  return { store, viewer, openPaper, loadList, dispose() { clearTimeout(expiryTimer); window.removeEventListener('online', online); listingController?.abort(); pdfController?.abort(); viewer.close(); } };
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') startApp({ window, document }).catch(() => {
