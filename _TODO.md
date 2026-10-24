@@ -8,11 +8,11 @@
 ## 🔴 次にやる
 
 - [x] ~~要件を決める~~ → `/Users/kakeru/Dev/_system/docs/20261024-論文リーダー要件.md`（WorkSpace 側の Claude が 10/24 に書いた）
-- [ ] 段階1を Codex に作らせてレビューする（`docs/briefs/20261024-01-stage1-reader.md`）
+- [x] ~~段階1を Codex に作らせてレビューする（`docs/briefs/20261024-01-stage1-reader.md`）~~ → 2026-10-24 修正なしで通過（テスト 21 件。デモで横長 844×390・縦長のスクロール・ドラッグ・ピンチ・ページの記憶・BibTeX のコピーを Chrome で確認。報告 `docs/reports/20261024-stage1.md`）
 
 ## 🟡 そのあと
 
-- [ ] （本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す
+- [ ] （本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す。承認済みのリダイレクト URI は `https://kk-corder.github.io/app-paper-reader/` と `…/index.html` の両方（ログイン後の戻り先が開いた URL のままのため）
 - [ ] （本人に確かめてから Claude）GitHub に `app-paper-reader` を作って Pages で公開し、`config.js` にクライアント ID を入れる
 - [ ] （WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（要件 §3）
 - [ ] （本人）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）
