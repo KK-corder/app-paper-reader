@@ -1,0 +1,2 @@
+pdfjs-dist 4.10.38（npm pack で取得。integrity sha512-/Y3fcFrXEAsMj…RihHANhZOlwdQ==）
+legacy/build/pdf.min.mjs・pdf.worker.min.mjs・cmaps/・standard_fonts/・LICENSE（Apache-2.0）をそのまま置いた。書き換えない。
