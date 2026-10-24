@@ -51,7 +51,7 @@ export function renderInformation(document, paper, summary, details, clipboard) 
   details.append(dl);
 }
 
-export async function startApp({ window, document, fetcher = fetch, Viewer = PdfViewer }) {
+export async function startApp({ window, document, fetcher = fetch, Viewer = PdfViewer, clientId = CLIENT_ID }) {
   const $ = id => document.getElementById(id);
   const el = (tag, text, cls) => element(document, tag, text, cls);
   const demo = new URLSearchParams(window.location.search).get('demo') === '1';
@@ -79,8 +79,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     if (name === 'reader') viewer.schedule();
   }
   function loginUI(message = '') {
-    $('login-message').textContent = !CLIENT_ID ? 'config.js にクライアント ID を入れる' : message;
-    $('login-button').disabled = !CLIENT_ID;
+    $('login-message').textContent = !clientId ? 'config.js にクライアント ID を入れる' : message;
+    $('login-button').disabled = !clientId;
   }
   function expired() {
     if (demo) return;
@@ -130,10 +130,10 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     } else await loadList();
   }
   async function preparePopup() {
-    if (!CLIENT_ID || demo || popupClient) return;
+    if (!clientId || demo || popupClient) return;
     if (popupPreparing) return popupPreparing;
     popupPreparing = loadGIS(document, window).then(oauth => {
-      popupClient = oauth.initTokenClient({ client_id: CLIENT_ID, scope: DRIVE_SCOPE,
+      popupClient = oauth.initTokenClient({ client_id: clientId, scope: DRIVE_SCOPE,
         callback: response => {
           if (response.error || !response.access_token || !(Number(response.expires_in) > 0)) { notify('ログインできませんでした。設定から方式を変えて試してください。'); return; }
           loggedIn({ accessToken: response.access_token, expiresAt: Date.now() + Number(response.expires_in) * 1000 });
@@ -144,7 +144,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
   function login() {
     if (demo) return;
-    if (!CLIENT_ID) { loginUI(); notify('config.js にクライアント ID を入れる'); return; }
+    if (!clientId) { loginUI(); notify('config.js にクライアント ID を入れる'); return; }
     if (store.state.settings.method === 'popup') {
       if (!popupClient) { preparePopup(); notify('ログインの準備中です。少し待ってからもう一度押してください。'); return; }
       popupClient.requestAccessToken();
@@ -154,7 +154,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       const state = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
       store.state.pendingLogin = { state, createdAt: Date.now() };
       if (!store.save()) return;
-      window.location.assign(redirectURL(CLIENT_ID, window.location.origin + window.location.pathname, state));
+      window.location.assign(redirectURL(clientId, window.location.origin + window.location.pathname, state));
     }
   }
 
@@ -280,8 +280,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
 
   function settingsUI() {
     $('login-state').textContent = demo ? 'デモ（ログイン不要）' : sessionGood() ? 'ログイン中' : 'ログインしていない';
-    $('client-hint').textContent = !demo && !CLIENT_ID ? 'config.js にクライアント ID を入れる' : '';
-    $('settings-login').disabled = demo || !CLIENT_ID;
+    $('client-hint').textContent = !demo && !clientId ? 'config.js にクライアント ID を入れる' : '';
+    $('settings-login').disabled = demo || !clientId;
     $('logout').disabled = demo || !store.state.session;
     $('login-method').value = store.state.settings.method;
     $('survey-path').value = store.state.settings.path;

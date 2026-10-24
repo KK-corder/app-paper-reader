@@ -90,7 +90,7 @@ test('demo flow: list, filters, open, tabs, DOI, copy, split limits, sheet, pers
 
 test('empty client ID starts without network or failure; settings save and clear work', async () => {
   const dom = makeDOM('');
-  const app = await startApp({ ...dom, Viewer, fetcher: () => { throw new Error('unexpected network'); } });
+  const app = await startApp({ ...dom, Viewer, clientId: '', fetcher: () => { throw new Error('unexpected network'); } });
   const { $ } = dom;
   assert.equal($('login-view').hidden, false);
   assert.equal($('login-message').textContent, 'config.js にクライアント ID を入れる');
