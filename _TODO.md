@@ -7,10 +7,18 @@
 
 ## 🔴 次にやる
 
-- [ ] 要件を決める: 誰が・何のために使うか、最小構成で何ができれば完成かを README に書く
+- [x] ~~要件を決める~~ → `/Users/kakeru/Dev/_system/docs/20261024-論文リーダー要件.md`（WorkSpace 側の Claude が 10/24 に書いた）
+- [ ] 段階1を Codex に作らせてレビューする（`docs/briefs/20261024-01-stage1-reader.md`）
 
 ## 🟡 そのあと
 
+- [ ] （本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す
+- [ ] （本人に確かめてから Claude）GitHub に `app-paper-reader` を作って Pages で公開し、`config.js` にクライアント ID を入れる
+- [ ] （WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（要件 §3）
+- [ ] （本人）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）
+
 ## 🟢 いつか
+
+- 段階2（今日の一本・オフライン）・段階3（読んだボタン・メモ）。本人が段階1を数日使ってから
 
 ## 保留・判断待ち

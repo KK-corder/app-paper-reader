@@ -8,11 +8,19 @@ Claude は `_system/rules/claude.md`、Codex は `_system/rules/codex.md` も読
 
 ## このプロジェクトのルール
 
-<!-- 両エージェントが必ず守る制約だけを書く。例: 公開範囲、使ってはいけないサービス、変えてはいけないデータ形式、課金の禁止 -->
-- 依存の追加は、ブリーフに明記されたものだけ。
+- 依存の追加は、ブリーフに明記されたものだけ。今あるのは `vendor/pdfjs/`（`pdfjs-dist@4.10.38` の legacy の build）だけで、中身を書き換えない。
+- Google ドライブは読むだけ（スコープは `drive.readonly`）。書き込みは段階3のブリーフが来るまで足さない。
+- 本人の論文の中身・要約・PDF・`papers.json`・本人のメモを、リポジトリに入れない（公開リポジトリになる予定）。デモのデータは作り物だけ。
+- Notion の API を呼ばない。Notion のキーを扱わない（Mac の WorkSpace 側だけが持つ）。
+- `papers.json` の形は要件 `/Users/kakeru/Dev/_system/docs/20261024-論文リーダー要件.md` §4 が正。形を変えたいときは実装を止めて報告する（書き出しは WorkSpace 側が作る）。
+- 端末への保存は `localStorage` のキー `paper-reader-v1` だけ。キーの名前を変えない。
+- Service Worker はアプリの殻だけをキャッシュし、Google のドメインへの通信をキャッシュしない。変えたら `sw.js` のキャッシュ名を上げる。
+- push（= GitHub Pages への公開）は本人の確認を取ってから行う。
 
 ## 検証方法
 
-<!-- 実装者がそのまま実行できる形で。ブリーフの「検証方法」の既定値になる -->
-- 起動: 
-- 確認する操作: 
+1. `node --test tests/`
+2. `vendor/` 以外の JS に `node --check`
+3. `git diff --check`
+4. `python3 -m http.server 8080`（`Dev/4_アプリ` で起動）→ `http://localhost:8080/PaperReader/?demo=1` で、横長 844×390・縦長 390×844 の両方を操作する（画面の確認は Claude。Codex はブラウザを起動しない）
+5. 本番の Drive とログインは、iPhone の実機で本人が確かめる
