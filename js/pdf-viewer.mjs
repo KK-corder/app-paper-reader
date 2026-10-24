@@ -110,7 +110,7 @@ export class PdfViewer {
       this.revision = 0;
       this.applyLayout();
       const number = clamp(Math.floor(page), 1, doc.numPages);
-      this.scroller.scrollTop = this.tops[number - 1];
+      this.scroller.scrollTop = number === 1 ? 0 : this.tops[number - 1];
       this.scroller.scrollLeft = 0;
       this.onReady(doc.numPages);
       this.schedule();

@@ -35,9 +35,9 @@ input, select { width: 100%; padding: 10px; min-height: 44px; }
 #list-message { margin: 8px 0; }
 .paper-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px 24px; }
 .paper-card { display: block; width: 100%; max-width: 1100px; margin: 0 auto 10px; padding: 16px; text-align: left; }
-.paper-card h2 { font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; margin-bottom: 5px; }
-.paper-card p { margin-bottom: 8px; line-height: 1.5; overflow-wrap: anywhere; }
-.paper-meta, .paper-tags { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; margin-top: 8px; }
+.paper-card h2 { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; margin-bottom: 5px; }
+.paper-card p { font-size: 14px; margin-bottom: 8px; line-height: 1.5; overflow-wrap: anywhere; }
+.paper-meta, .paper-tags { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; margin-top: 8px; }
 .stars { color: #8d651a; letter-spacing: 1px; }
 .no-pdf { color: #8a4530; }
 .reader-toolbar h1 { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
@@ -60,14 +60,14 @@ input, select { width: 100%; padding: 10px; min-height: 44px; }
 .tabs button { border: 0; border-radius: 5px; font-size: 14px; }
 .tabs [aria-selected="true"] { color: var(--accent); background: #e6efed; font-weight: 700; }
 .info-content { overflow: auto; overscroll-behavior: contain; flex: 1; padding: 18px; line-height: 1.8; overflow-wrap: anywhere; }
-.info-content h2 { font-size: 15px; margin: 0 0 8px; color: var(--accent); }
+.info-content h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
 .summary-section { margin-bottom: 26px; }
-.summary-section p { white-space: pre-wrap; font-size: 14px; }
+.summary-section p { white-space: pre-wrap; font-size: 13px; }
 dl { margin: 0; }
-dt { font-size: 12px; color: #586b6d; margin-top: 14px; }
+dt { font-size: 11px; color: #586b6d; margin-top: 14px; }
 dt:first-child { margin-top: 0; }
-dd { margin: 2px 0 0; font-size: 14px; white-space: pre-wrap; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; padding: 12px; background: #f2f5f4; border-radius: 6px; }
+dd { margin: 2px 0 0; font-size: 13px; white-space: pre-wrap; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; padding: 12px; background: #f2f5f4; border-radius: 6px; }
 .copy-message { margin-left: 8px; font-size: 13px; }
 #sheet-toggle, #sheet-close { display: none; }
 .settings-content { width: 100%; max-width: 700px; padding: 20px; overflow: auto; margin: 0 auto; line-height: 1.65; }

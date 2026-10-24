@@ -265,6 +265,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     $('page-counter').textContent = '— / —';
     $('zoom-label').textContent = '100%';
     renderInformation(document, paper, $('summary-content'), $('details-content'), window.navigator.clipboard);
+    $('summary-content').scrollTop = 0;
+    $('details-content').scrollTop = 0;
     $('pdf-status').textContent = 'PDF を読み込み中…';
     $('pdf-status').hidden = false;
     try {

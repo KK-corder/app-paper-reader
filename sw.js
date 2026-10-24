@@ -1,4 +1,4 @@
-const CACHE = 'paper-reader-shell-v1';
+const CACHE = 'paper-reader-shell-v2';
 const ROOT = new URL('./', self.location.href);
 const SHELL = [
   'index.html', 'styles.css', 'config.js', 'manifest.webmanifest',
