@@ -14,12 +14,10 @@
 
 - [x] ~~（本人）Google Cloud に OAuth のクライアント（ウェブ）を 1 つ作り、クライアント ID を Claude に渡す（手順 `~/Dev/.claude/skills/mobile-pwa/references/google-oauth.md`）。承認済みのリダイレクト URI は `https://kk-corder.github.io/app-paper-reader/` と `…/index.html` の両方（ログイン後の戻り先が開いた URL のままのため）~~ → 2026-10-24 受け取り、`config.js` に入れた
 - [x] ~~（本人に確かめてから Claude）GitHub に `app-paper-reader` を作って Pages で公開し、`config.js` にクライアント ID を入れる~~ → 2026-10-24 公開（https://kk-corder.github.io/app-paper-reader/）。公開先でデモと PDF の表示を Chrome で確認
-- [ ] （WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（依頼 `~/Dev/_system/docs/20261024-論文リーダー-書き出し要件.md`）
+- [x] ~~（WorkSpace 側）Notion の論文 DB を `survey/_reader/papers.json` に書き出すスクリプトを作る（依頼 `~/Dev/_system/docs/20261024-論文リーダー-書き出し要件.md`）~~ → 2026-10-24 WorkSpace が作った（毎朝 7:50）。Claude が中身を点検: 121 本・項目と型の欠けなし・PDF と drive_id が全部ディスクの実物と一致・アプリの読み込みで落ちない
 - [ ] （本人・書き出しができたら）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）
 
 ## 🟢 いつか
-
-- 論文を開いたら横持ちにしたい（本人 10/24「画面回転を on にするのが面倒」。ただし「いったんこのまま、使ってみて決める」）。iOS の Safari は Web から画面の向きを固定できないので、やるなら縦持ちの読みやすさを上げる方向で考える
 
 - 段階2（今日の一本・オフライン）・段階3（読んだボタン・メモ）。本人が段階1を数日使ってから
 
