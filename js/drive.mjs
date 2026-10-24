@@ -17,7 +17,8 @@ export class Drive {
   async request(path, params = {}, signal) {
     const url = new URL(`https://www.googleapis.com/drive/v3/${path}`);
     url.search = new URLSearchParams(params).toString();
-    const response = await this.fetcher(url.href, { headers: this.headers(), cache: 'no-store', signal });
+    const fetcher = this.fetcher;
+    const response = await fetcher(url.href, { headers: this.headers(), cache: 'no-store', signal });
     if (response.status === 401) this.onExpired();
     if (!response.ok) throw new DriveError(response.status, `Drive の読み込みに失敗しました（${response.status}）。`);
     return response.json();

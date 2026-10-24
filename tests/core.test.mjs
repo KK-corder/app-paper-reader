@@ -134,3 +134,13 @@ test('Drive traverses folders once, uses direct IDs, requests only reads, and ha
   assert.throws(() => drive.headers(), error => error.status === 401);
   assert.equal(expired, 2);
 });
+
+test('Drive calls the fetcher as a plain function, as Safari requires for window.fetch', async () => {
+  const store = createStore(memory());
+  store.state.session = { accessToken: 'sample', expiresAt: Date.now() + 60000 };
+  const drive = new Drive(store, () => {}, function (url) {
+    if (this !== undefined) throw new TypeError('Can only call Window.fetch on instances of Window');
+    return Promise.resolve({ ok: true, status: 200, json: async () => new URL(url).searchParams.has('alt') ? fixture : { files: [{ id: 'id' }] } });
+  });
+  await drive.library();
+});
