@@ -121,20 +121,80 @@ test('invalid JSON or missing events stops without overwriting any existing log'
   }
 });
 
-test('local overrides apply only after generated; pruning them never drops unsent events or changes the source paper', () => {
+test('sent overrides survive newer stale exports and restart until the source status matches', async () => {
   const { reading, store, storage, values } = setup();
   const paper = { id: 'paper', read_status: '未読' };
   store.setPage('paper', 7);
   reading.record('paper', '読了');
-  assert.equal(reading.paper(paper, '2026-10-24T19:59:59+09:00').read_status, '読了');
+  await reading.flush();
+  assert.equal(reading.pendingCount(), 0);
+  assert.equal(reading.paper(paper, '2026-10-24T20:00:01+09:00').read_status, '読了');
   assert.equal(paper.read_status, '未読');
-  const reloaded = createReading(createStore(storage), {});
-  assert.equal(reloaded.paper(paper, '2026-10-24T19:59:59+09:00').read_status, '読了');
-  assert.equal(reading.paper(paper, '2026-10-24T20:00:01+09:00').read_status, '未読');
-  assert.deepEqual(store.state.reading.overrides, {});
-  assert.equal(reading.pendingCount(), 1);
+  const reloadedStore = createStore(storage);
+  const reloaded = createReading(reloadedStore, {});
+  assert.equal(reloaded.paper(paper, '2026-10-25T19:59:59.999+09:00').read_status, '読了');
+  const caughtUp = { ...paper, read_status: '読了' };
+  assert.equal(reloaded.paper(caughtUp, '2026-10-24T20:00:02+09:00'), caughtUp);
+  assert.deepEqual(reloadedStore.state.reading.overrides, {});
+  assert.deepEqual(createStore(storage).state.reading.overrides, {});
   assert.equal(createStore(storage).page('paper'), 7);
   assert.deepEqual([...values.keys()], [STORAGE_KEY]);
+});
+
+test('unsent overrides survive two-day-old and matching exports, including after restart', async () => {
+  const { reading, storage, server } = setup();
+  server.failure = new TypeError('offline');
+  reading.record('paper', '読了');
+  await reading.flush();
+  const store = createStore(storage);
+  const resumed = createReading(store, {});
+  const expected = structuredClone(store.state.reading);
+  for (const read_status of ['未読', '読了']) {
+    assert.equal(resumed.paper({ id: 'paper', read_status }, '2026-10-26T20:00:00+09:00').read_status, '読了');
+    assert.deepEqual(store.state.reading, expected);
+    assert.deepEqual(createStore(storage).state.reading, expected);
+  }
+});
+
+test('sent mismatched overrides expire at exactly 24 hours and later, and are removed from storage', async () => {
+  for (const generated of ['2026-10-25T20:00:00+09:00', '2026-10-26T20:00:00+09:00']) {
+    const { reading, store, storage } = setup();
+    const paper = { id: 'paper', read_status: '未読' };
+    reading.record('paper', '読了');
+    await reading.flush();
+    assert.equal(reading.paper(paper, generated), paper);
+    assert.deepEqual(store.state.reading.overrides, {});
+    assert.deepEqual(createStore(storage).state.reading.overrides, {});
+  }
+});
+
+test('rapid read then unread taps keep the latest override when an intermediate read export arrives', async () => {
+  const { reading, store, storage } = setup();
+  reading.record('paper', '読了');
+  reading.record('paper', '未読');
+  const expected = structuredClone(store.state.reading.overrides);
+  const intermediate = { id: 'paper', read_status: '読了' };
+  assert.equal(reading.paper(intermediate, '2026-10-24T20:00:01+09:00').read_status, '未読');
+  await reading.flush();
+  assert.equal(reading.paper(intermediate, '2026-10-24T20:00:01+09:00').read_status, '未読');
+  assert.deepEqual(createStore(storage).state.reading.overrides, expected);
+});
+
+test('pending detection distinguishes the survey path, paper ID and exact tap timestamp', () => {
+  for (const change of [
+    entry => { entry.path = 'other/survey'; },
+    entry => { entry.event.id = 'other-paper'; },
+    entry => { entry.event.at = '2026-10-24T19:59:59+09:00'; },
+  ]) {
+    const { reading, store } = setup();
+    reading.record('paper', '読了');
+    const unrelated = structuredClone(store.state.reading.pending[0]);
+    change(unrelated);
+    store.state.reading.pending = [unrelated];
+    const paper = { id: 'paper', read_status: '未読' };
+    assert.equal(reading.paper(paper, '2026-10-26T20:00:00+09:00'), paper);
+    assert.deepEqual(store.state.reading.pending, [unrelated]);
+  }
 });
 
 test('demo changes never send real pending records and cannot affect real overrides; clear-reading preserves both', async () => {

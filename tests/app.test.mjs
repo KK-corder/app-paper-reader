@@ -292,7 +292,7 @@ test('app startup resends saved pending events; a corrupt log stays untouched an
   app.dispose();
 });
 
-test('refreshed papers.json takes precedence after generated catches up, including list and basic information', async () => {
+test('refreshed stale papers.json preserves the override until 24 hours, including list and basic information', async () => {
   const dom = makeDOM('');
   dom.storage.set('paper-reader-v1', JSON.stringify(savedSession()));
   const library = realLibrary();
@@ -304,8 +304,13 @@ test('refreshed papers.json takes precedence after generated catches up, includi
   assert.equal(dom.$('summary-content').children[0], summaryNode, 'status updates must preserve the reading panel');
   assert.equal(detailStatus(dom), '読了');
   await dom.$('back-list').emit('click');
+  library.generated = new Date(Date.parse(server.log.events[0].at) + 1000).toISOString();
   await dom.$('reload').emit('click');
   assert.match(dom.$('paper-list').children[0].textContent, /読了/);
+  await dom.$('paper-list').children[0].emit('click');
+  assert.equal(detailStatus(dom), '読了');
+  assert.equal(dom.$('read-toggle').textContent, '未読に戻す');
+  await dom.$('back-list').emit('click');
   library.generated = '2099-01-01T00:00:00+09:00';
   await dom.$('reload').emit('click');
   assert.match(dom.$('paper-list').children[0].textContent, /未読/);

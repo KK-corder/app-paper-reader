@@ -20,7 +20,8 @@
 - [x] ~~一覧の絞り込み（タグ・未読／読了）を Codex に作らせてレビューする（`docs/briefs/20261025-01-list-filters.md`）~~ → 2026-10-25 修正なしで通過（テスト 40 件。デモの 844×390・390×844 で、未読／読了・タグ 2 つの「かつ」・検索との組み合わせ・解除・再読み込み後も残る・読了にすると未読の一覧から消えるを確認）
 - [ ] （本人）Google Cloud の「データアクセス」に `.../auth/drive.file` を足し、iPhone でログインし直す（読了ボタンができてから）
 - [x] ~~（WorkSpace 側）reading_log.json を読んで Notion の Read Status に戻すスクリプト~~ → 2026-10-24 WorkSpace が作った（`apply_reading_log.py`・30 分ごと）。本物の 1 件が Notion と papers.json に反映されたのを確認
-- [ ] 端末の上書きを papers.json が追いつくまで残すよう Codex に直させてレビューする（`docs/briefs/20261025-02-read-override-until-match.md`）
+- [x] ~~端末の上書きを papers.json が追いつくまで残すよう Codex に直させてレビューする（`docs/briefs/20261025-02-read-override-until-match.md`）~~ → 2026-10-25 修正なしで通過（テスト 44 件。未送信の間・値が一致するまで・送信済みで 24 時間たったら、を確認）
+- [ ] （本人）iPhone で 1 本「読了」→ 30 分ほどで Notion が「読了」になるか、「未読に戻す」で Notion も戻るかを確かめる
 - [ ] （本人・書き出しができたら）iPhone のホーム画面版で、横持ちで PDF をスクロールしながら右の要約を読めるか・縦持ちで崩れないかを確かめる（段階1の完了の確かめ方）
 
 ## 🟢 いつか

@@ -25,7 +25,10 @@ export function createReading(store, drive, { demo = false, onChange = () => {},
     const event = state.overrides[key(paper.id)];
     if (!event) return paper;
     const generatedAt = Date.parse(generated);
-    if (!demo && Date.parse(event.at) <= generatedAt) {
+    const pending = state.pending.some(entry => entry.path === scope() && entry.event.id === paper.id && entry.event.at === event.at);
+    const caughtUp = paper.read_status === event.read_status;
+    const expired = generatedAt - Date.parse(event.at) >= 24 * 3600_000;
+    if (!demo && !pending && (caughtUp || expired)) {
       delete state.overrides[key(paper.id)];
       store.save();
       return paper;
