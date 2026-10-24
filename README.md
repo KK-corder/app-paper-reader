@@ -7,7 +7,7 @@ iPhone で PDF と要約を並べて論文を読む PWA
 | カテゴリ | アプリ |
 | 状態 | 試作中 |
 | 作る環境 | Mac（Dev） |
-| 公開 | 非公開 |
+| 公開 | 公開（https://kk-corder.github.io/app-paper-reader/） |
 
 <!-- 型の決まりは ~/Dev/_system/rules/repo_format.md §4。見出しの名前と順番を変えない -->
 
@@ -19,7 +19,11 @@ iPhone で PDF と要約を並べて論文を読む PWA
 
 ## 使い方
 
-まだ公開していない。ローカルでデモのデータを見るとき:
+iPhone の Safari で https://kk-corder.github.io/app-paper-reader/ を開き、共有 →「ホーム画面に追加」。ホーム画面のアイコンから開いて「Google でログイン」。ログインから戻ってこられないときは、設定でログインの方式を変えるか、Safari のタブのまま使う。
+
+架空の論文のデモ: https://kk-corder.github.io/app-paper-reader/?demo=1
+
+ローカルで開くとき:
 
 ```bash
 cd ~/Dev/4_アプリ && python3 -m http.server 8080   # http://localhost:8080/PaperReader/?demo=1
@@ -47,4 +51,4 @@ git diff --check
 
 ## 状態と次の一手
 
-- 2026-10-24 作成。段階1のブリーフ `docs/briefs/20261024-01-stage1-reader.md`。細かい TODO は `_TODO.md`
+- 2026-10-24 作成。段階1（読むだけ）をデモで確認し、GitHub Pages で公開。iPhone で使うには、WorkSpace 側の `papers.json` の書き出しが要る。細かい TODO は `_TODO.md`
