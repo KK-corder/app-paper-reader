@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { canvasScale, clamp, currentPage, normalizeLibrary, pageLayout, selectPapers } from '../js/core.mjs';
+import { canvasScale, clamp, currentPage, normalizeLibrary, pageLayout, selectPapers, tagCounts, normalizeFilters } from '../js/core.mjs';
 import { createStore, STORAGE_KEY } from '../js/storage.mjs';
 import { consumeRedirect, DRIVE_SCOPE, parseRedirect, redirectURL, validSession } from '../js/login.mjs';
 import { Drive, escapeDriveValue, searchQuery } from '../js/drive.mjs';
@@ -143,4 +143,28 @@ test('Drive calls the fetcher as a plain function, as Safari requires for window
     return Promise.resolve({ ok: true, status: 200, json: async () => new URL(url).searchParams.has('alt') ? fixture : { files: [{ id: 'id' }] } });
   });
   await drive.library();
+});
+
+test('filters preserve unread/star order, count papers once per tag, and include every non-unread status as read', () => {
+  const { papers } = normalizeLibrary(fixture);
+  assert.deepEqual(selectPapers(papers, '', { status: 'unread', tags: ['読書UI'] }).map(p => p.id), ['demo-first', 'demo-long']);
+  assert.deepEqual(selectPapers(papers, '', { tags: ['読書UI', '架空実験'] }).map(p => p.id), ['demo-long', 'demo-read']);
+  const statuses = ['未読', '読了', '既読', '', 'その他'].map((read_status, i) => ({ ...papers[0], id: String(i), read_status }));
+  assert.deepEqual(selectPapers(statuses, '', { status: 'read' }).map(p => p.id), ['1', '2', '3', '4']);
+  assert.deepEqual(tagCounts([{ tags: ['a', 'a', 'b'] }, { tags: ['b'] }]), [{ tag: 'b', count: 2 }, { tag: 'a', count: 1 }]);
+  assert.deepEqual(normalizeFilters({ status: 'bad', tags: ['a', 'a', null, 'gone'] }, new Set(['a'])), { status: 'all', tags: ['a'] });
+  assert.deepEqual(normalizeFilters(null), { status: 'all', tags: [] });
+});
+
+test('filter storage defaults for old data and validates malformed saved choices without changing existing fields', () => {
+  const storage = memory();
+  storage.setItem(STORAGE_KEY, JSON.stringify({ pages: { paper: 7 }, filters: { status: 'bad', tags: 'bad' } }));
+  const store = createStore(storage);
+  assert.deepEqual(store.state.filters, { status: 'all', tags: [] });
+  store.state.filters = { status: 'read', tags: ['a'] };
+  store.save();
+  const reloaded = createStore(storage);
+  assert.deepEqual(reloaded.state.filters, { status: 'read', tags: ['a'] });
+  assert.equal(reloaded.page('paper'), 7);
+  assert.deepEqual(createStore(memory()).state.filters, { status: 'all', tags: [] });
 });

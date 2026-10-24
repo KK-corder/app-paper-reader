@@ -1,4 +1,4 @@
-import { DEFAULT_PATH, clamp } from './core.mjs';
+import { DEFAULT_PATH, clamp, normalizeFilters } from './core.mjs';
 
 export const STORAGE_KEY = 'paper-reader-v1';
 export function createStore(storage, onError = () => {}) {
@@ -12,6 +12,7 @@ export function createStore(storage, onError = () => {}) {
     folders: saved.folders && typeof saved.folders === 'object' ? saved.folders : {},
     pages: saved.pages && typeof saved.pages === 'object' ? saved.pages : {},
     panelWidth: clamp(Number(saved.panelWidth) || 50, 25, 75),
+    filters: normalizeFilters(saved.filters),
     reading: {
       pending: Array.isArray(saved.reading?.pending) ? saved.reading.pending : [],
       overrides: saved.reading?.overrides && typeof saved.reading.overrides === 'object' ? saved.reading.overrides : {},

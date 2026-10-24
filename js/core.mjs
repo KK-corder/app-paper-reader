@@ -17,10 +17,28 @@ export function normalizeLibrary(data) {
   };
 }
 
-export function selectPapers(papers, query = '') {
+export function tagCounts(papers) {
+  const counts = new Map();
+  for (const paper of papers) for (const tag of new Set(paper.tags)) counts.set(tag, (counts.get(tag) || 0) + 1);
+  return [...counts].map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, 'ja'));
+}
+
+export function normalizeFilters(filters = {}, availableTags) {
+  const tags = Array.isArray(filters?.tags) ? [...new Set(filters.tags.filter(tag => typeof tag === 'string'))] : [];
+  return {
+    status: ['unread', 'read'].includes(filters?.status) ? filters.status : 'all',
+    tags: availableTags ? tags.filter(tag => availableTags.has(tag)) : tags,
+  };
+}
+
+export function selectPapers(papers, query = '', filters = {}) {
   const needle = query.trim().toLocaleLowerCase();
+  const { status, tags } = normalizeFilters(filters);
   const stars = p => (p.importance.match(/★/g) || []).length;
-  return papers.filter(p => [p.title, p.title_jp, ...p.tags].some(s => s.toLocaleLowerCase().includes(needle)))
+  return papers.filter(p => (status === 'all' || (p.read_status === '未読') === (status === 'unread'))
+    && tags.every(tag => p.tags.includes(tag))
+    && [p.title, p.title_jp, ...p.tags].some(s => s.toLocaleLowerCase().includes(needle)))
     .sort((a, b) => Number(b.read_status === '未読') - Number(a.read_status === '未読') || stars(b) - stars(a) || a.title.localeCompare(b.title, 'ja'));
 }
 

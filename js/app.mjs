@@ -1,5 +1,5 @@
 import { CLIENT_ID } from '../config.js';
-import { clamp, errorMessage, normalizeLibrary, selectPapers } from './core.mjs';
+import { clamp, errorMessage, normalizeLibrary, normalizeFilters, selectPapers, tagCounts } from './core.mjs';
 import { createStore } from './storage.mjs';
 import { consumeRedirect, DRIVE_SCOPE, loadGIS, redirectURL, validSession } from './login.mjs';
 import { Drive } from './drive.mjs';
@@ -187,8 +187,46 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     }
   }
 
+  const statusButtons = new Map();
+  const tagButtons = new Map();
+  for (const [status, label] of [['all', 'すべて'], ['unread', '未読'], ['read', '読了']]) {
+    const button = el('button', label);
+    button.addEventListener('click', () => {
+      store.state.filters.status = status;
+      store.save();
+      drawList();
+    });
+    statusButtons.set(status, button);
+    $('status-filters').append(button);
+  }
+  function rebuildTags() {
+    const counts = tagCounts(library.papers);
+    const filters = normalizeFilters(store.state.filters, new Set(counts.map(item => item.tag)));
+    if (filters.tags.length !== store.state.filters.tags.length) {
+      store.state.filters = filters;
+      store.save();
+    }
+    tagButtons.clear();
+    $('tag-filters').replaceChildren();
+    for (const { tag, count } of counts) {
+      const button = el('button', tag + ' ' + count);
+      button.addEventListener('click', () => {
+        const tags = store.state.filters.tags;
+        store.state.filters.tags = tags.includes(tag) ? tags.filter(value => value !== tag) : [...tags, tag];
+        store.save();
+        drawList();
+      });
+      tagButtons.set(tag, button);
+      $('tag-filters').append(button);
+    }
+  }
+
   function drawList() {
-    const papers = selectPapers(library.papers.map(paper => reading.paper(paper, library.generated)), $('filter').value);
+    const filters = store.state.filters;
+    for (const [status, button] of statusButtons) button.setAttribute('aria-pressed', String(filters.status === status));
+    for (const [tag, button] of tagButtons) button.setAttribute('aria-pressed', String(filters.tags.includes(tag)));
+    $('clear-filters').hidden = !($('filter').value.trim() || filters.status !== 'all' || filters.tags.length);
+    const papers = selectPapers(library.papers.map(paper => reading.paper(paper, library.generated)), $('filter').value, filters);
     $('paper-list').replaceChildren();
     $('count').textContent = `${papers.length} 本 / ${library.papers.length} 本`;
     $('generated').textContent = library.generated ? `書き出し: ${library.generated}` : '書き出し日時: —';
@@ -239,6 +277,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       } else data = await drive.library(signal);
       if (signal.aborted) return;
       library = normalizeLibrary(data);
+      rebuildTags();
       pdfAvailability.clear();
       drawList();
       $('list-message').textContent = 'PDF の有無を確認中…';
@@ -323,6 +362,12 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   $('filter').addEventListener('input', drawList);
+  $('clear-filters').addEventListener('click', () => {
+    $('filter').value = '';
+    store.state.filters = normalizeFilters();
+    store.save();
+    drawList();
+  });
   $('read-toggle').addEventListener('click', () => {
     if (!activePaper) return;
     const paper = reading.paper(activePaper, library.generated);

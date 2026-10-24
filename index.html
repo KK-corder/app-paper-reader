@@ -32,7 +32,7 @@
     </section>
     <section id="list-view" class="view" hidden aria-labelledby="list-title">
       <header class="toolbar"><h1 id="list-title">論文リーダー</h1><span id="demo-badge" class="badge" hidden>デモ</span><div class="toolbar-actions"><button id="reload">再読み込み</button><button class="open-settings">設定</button></div></header>
-      <div class="list-tools"><label for="filter">題・和題・タグで絞り込み</label><input id="filter" type="search" placeholder="キーワードを入力" autocomplete="off"><div class="list-caption"><span id="count"></span><span id="generated"></span></div><p id="list-message" role="status"></p></div>
+      <div class="list-tools"><label for="filter">題・和題・タグで絞り込み</label><input id="filter" type="search" placeholder="キーワードを入力" autocomplete="off"><div class="filter-row"><div id="status-filters" role="group" aria-label="読んだかどうか"></div><button id="clear-filters" hidden>絞り込みを解除</button></div><div id="tag-filters" class="tag-filters" role="group" aria-label="タグ"></div><div class="list-caption"><span id="count"></span><span id="generated"></span></div><p id="list-message" role="status"></p></div>
       <main id="paper-list" class="paper-list" aria-label="論文一覧"></main>
     </section>
     <section id="reader-view" class="view" hidden aria-label="論文を読む">
