@@ -30,6 +30,8 @@
 - [ ] （本人に確かめてから Claude）PaperReader を push して GitHub Pages に公開する（`feed` が無い今の papers.json でも一覧は今までどおり出る）
 - [ ] （本人）`~/Dev/_system/docs/20261028-論文リーダー-フィード書き出し要件.md` を WorkSpace の Claude に渡し、`papers.json` に `feed` を足してもらう（10/28 本人「依頼書を書き WorkSpace で」）
 - [ ] （本人・上の 2 つができたら）iPhone で今日の一本の PDF を Safari でダウンロード →「PDF を入れる」→ `survey/` にその名前で入り、そのまま読めるかを確かめる（`drive.file` で Mac が作った `survey/` に書けるかもここで分かる）
+- [ ] PDF 待ちを新しい 10 本＋「残り n 本を表示」にする（7 日より前の配信も入るため）: `docs/briefs/20261028-02-pdf-waiting-more.md`（本人 10/28「完了にならずに消えたものも PDF を入れる候補に」）
+- [ ] （本人）フィード書き出し要件の §6（7 日より前の配信も `feed` に入れる・リマインダーの論文配信を止める条件）を WorkSpace の Claude に渡す
 - [ ] メモ欄（決定④: アプリのメモを `_reader/` 経由で Notion の `comment` へ）のブリーフを書く（段階2の前半が通ってから）
 
 ## 🟢 いつか
