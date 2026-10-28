@@ -1,8 +1,8 @@
-const CACHE = 'paper-reader-shell-v4';
+const CACHE = 'paper-reader-shell-v5';
 const ROOT = new URL('./', self.location.href);
 const SHELL = [
   'index.html', 'styles.css', 'config.js', 'manifest.webmanifest',
-  'js/app.mjs', 'js/core.mjs', 'js/storage.mjs', 'js/login.mjs', 'js/drive.mjs', 'js/reading.mjs', 'js/pdf-viewer.mjs',
+  'js/app.mjs', 'js/core.mjs', 'js/storage.mjs', 'js/login.mjs', 'js/drive.mjs', 'js/reading.mjs', 'js/feed.mjs', 'js/feed-view.mjs', 'js/pdf-viewer.mjs',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
   'vendor/pdfjs/pdf.min.mjs', 'vendor/pdfjs/pdf.worker.min.mjs',
 ].map(path => new URL(path, ROOT).href);

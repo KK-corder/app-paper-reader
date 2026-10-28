@@ -18,6 +18,12 @@ export function createStore(storage, onError = () => {}) {
       overrides: saved.reading?.overrides && typeof saved.reading.overrides === 'object' ? saved.reading.overrides : {},
       lastAt: Number(saved.reading?.lastAt) || 0,
     },
+    feed: {
+      pending: Array.isArray(saved.feed?.pending) ? saved.feed.pending : [],
+      overrides: saved.feed?.overrides && typeof saved.feed.overrides === 'object' ? saved.feed.overrides : {},
+      demoEvents: Array.isArray(saved.feed?.demoEvents) ? saved.feed.demoEvents : [],
+      lastAt: Number(saved.feed?.lastAt) || 0,
+    },
   };
   return {
     state,

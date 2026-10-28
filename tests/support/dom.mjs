@@ -22,6 +22,8 @@ export class Node {
   addEventListener(type, fn) { if (!this.listeners.has(type)) this.listeners.set(type, []); this.listeners.get(type).push(fn); }
   removeEventListener(type, fn) { this.listeners.set(type, (this.listeners.get(type) || []).filter(listener => listener !== fn)); }
   async emit(type, values = {}) { for (const fn of this.listeners.get(type) || []) await fn({ preventDefault() {}, touches: [], ...values }); }
+  click() { return this.emit('click'); }
+  querySelector(tag) { return this.descendants(tag)[0] || null; }
   getBoundingClientRect() { return { left: 0, top: 0, width: this.clientWidth, height: this.clientHeight }; }
   setPointerCapture() {}
   focus() { this.ownerDocument.activeElement = this; }
@@ -32,6 +34,7 @@ export class Node {
 export function makeDOM(search = '?demo=1', storage = new Map()) {
   const document = new Node('document');
   document.ownerDocument = document;
+  document.baseURI = 'http://localhost:8080/PaperReader/';
   document.createElement = tag => new Node(tag, document);
   document.head = document.createElement('head');
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');

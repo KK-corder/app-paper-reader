@@ -46,6 +46,7 @@ export function readingDrive(library = { papers: [], generated: '' }, initialLog
       const q = url.searchParams.get('q');
       assert.match(q, /^'reader-id' in parents and trashed = false and name = '/);
       if (q.endsWith("name = 'reading_log.json'")) result = { files: server.log === null ? [] : [{ id: 'log-id' }] };
+      else if (q.endsWith("name = 'feed_log.json'")) result = { files: [] };
       else { assert.ok(q.endsWith("name = 'papers.json'")); result = { files: [{ id: 'papers-id' }] }; }
     } else {
       assert.equal(url.searchParams.get('alt'), 'media');

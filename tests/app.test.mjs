@@ -139,9 +139,10 @@ test('saved valid session loads Drive without another login; expiry leaves an op
     assert.equal(options.headers.Authorization, 'Bearer sample');
     const url = new URL(input);
     assert.equal(url.origin, 'https://www.googleapis.com');
+    if (url.searchParams.get('q')?.endsWith("name = 'feed_log.json'")) return { ok: true, json: async () => ({ files: [] }) };
     return { ok: true, json: async () => url.searchParams.has('alt') ? { papers: [{ ...fixture.papers[2], pdf: { name: 'demo.pdf', drive_id: 'pdf-id' } }] } : { files: [{ id: 'json-id' }] } };
   } });
-  assert.equal(reads, 2);
+  assert.equal(reads, 3);
   assert.equal(dom.$('list-view').hidden, false);
   await dom.$('paper-list').children[0].emit('click');
   assert.equal(app.viewer.calls[0].source.headers.Authorization, 'Bearer sample');

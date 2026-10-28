@@ -1,4 +1,5 @@
 import { validSession } from './login.mjs';
+import { validatePdf, validFeedEvent, sameFeedEvent } from './feed.mjs';
 
 export function escapeDriveValue(value) { return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 export function searchQuery(parent, name, folder = false) {
@@ -9,7 +10,7 @@ export class DriveError extends Error {
 }
 
 export class Drive {
-  constructor(store, onExpired, fetcher = fetch) { this.store = store; this.onExpired = onExpired; this.fetcher = fetcher; }
+  constructor(store, onExpired, fetcher = fetch) { this.store = store; this.onExpired = onExpired; this.fetcher = fetcher; this.uploads = new Map(); }
   headers() {
     if (!validSession(this.store.state.session)) { this.onExpired(); throw new DriveError(401, 'もう一度ログインしてください。'); }
     return { Authorization: `Bearer ${this.store.state.session.accessToken}` };
@@ -53,25 +54,44 @@ export class Drive {
     if (!event?.id || !['未読', '読了'].includes(event.read_status) || !Number.isFinite(Date.parse(event.at)) || !event.at.endsWith('+09:00')) {
       throw new Error('読了の記録の形式を確認してください。');
     }
+    return this.appendLog('reading_log.json', { id: event.id, read_status: event.read_status, at: event.at },
+      row => row?.id === event.id && row.read_status === event.read_status && row.at === event.at);
+  }
+  async appendFeed(event) {
+    if (!validFeedEvent(event)) throw new Error('フィードの記録の形式を確認してください。');
+    const row = { key: event.key, action: event.action, at: event.at };
+    if (event.action === 'pdf') Object.assign(row, { name: event.name, drive_id: event.drive_id });
+    return this.appendLog('feed_log.json', row, existing => sameFeedEvent(existing, row));
+  }
+  async feedLog(signal) {
+    const { reader } = await this.folders(signal);
+    const id = await this.find(reader, 'feed_log.json', false, signal);
+    if (!id) return [];
+    const log = await this.request(`files/${encodeURIComponent(id)}`, { alt: 'media' }, signal);
+    if (!log || !Array.isArray(log.events) || !log.events.every(validFeedEvent)) throw new Error('feed_log.json の記録を読めません。');
+    return log.events;
+  }
+  async appendLog(name, event, matches) {
+    if (!['reading_log.json', 'feed_log.json'].includes(name)) throw new Error('書き込めないファイルです。');
     const { reader } = await this.folders();
-    const id = await this.find(reader, 'reading_log.json');
+    const id = await this.find(reader, name);
     let log = { events: [] };
     if (id) {
       try { log = await this.request(`files/${encodeURIComponent(id)}`, { alt: 'media' }); }
       catch (error) {
         if (!(error instanceof SyntaxError)) throw error;
-        throw new Error('reading_log.json が壊れているため、上書きせず送信を止めました。');
+        throw new Error(`${name} が壊れているため、上書きせず送信を止めました。`);
       }
-      if (!log || !Array.isArray(log.events)) throw new Error('reading_log.json の events を読めないため、上書きせず送信を止めました。');
+      if (!log || !Array.isArray(log.events) || (name === 'feed_log.json' && !log.events.every(validFeedEvent))) throw new Error(`${name} の events を読めないため、上書きせず送信を止めました。`);
       // A write may have succeeded even when its response was lost.
-      if (log.events.some(row => row?.id === event.id && row.read_status === event.read_status && row.at === event.at)) return;
+      if (log.events.some(matches)) return;
     }
-    log.events.push({ id: event.id, read_status: event.read_status, at: event.at });
+    log.events.push(event);
     let body = JSON.stringify(log);
     let contentType = 'application/json';
     if (!id) {
       const boundary = `paper_reader_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-      const metadata = { name: 'reading_log.json', parents: [reader], mimeType: 'application/json' };
+      const metadata = { name, parents: [reader], mimeType: 'application/json' };
       body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--\r\n`;
       contentType = `multipart/related; boundary=${boundary}`;
     }
@@ -79,7 +99,43 @@ export class Drive {
     const fetcher = this.fetcher;
     const response = await fetcher(url, { method: id ? 'PATCH' : 'POST', headers: { ...this.headers(), 'Content-Type': contentType }, body, cache: 'no-store' });
     if (response.status === 401) this.onExpired();
-    if (!response.ok) throw new DriveError(response.status, `読了の記録を送信できませんでした（${response.status}）。`);
+    if (!response.ok) throw new DriveError(response.status, `記録を送信できませんでした（${response.status}）。`);
+  }
+  async putFeedPdf(item, file) {
+    await validatePdf(file);
+    if (typeof item.pdf_name !== 'string' || !item.pdf_name.trim()) throw new Error('PDF の保存名がありません。');
+    const key = JSON.stringify([this.store.state.settings.path, item.pdf_name]);
+    if (!this.uploads.has(key)) {
+      const upload = this.uploadFeedPdf(item.pdf_name, file).finally(() => this.uploads.delete(key));
+      this.uploads.set(key, upload);
+    }
+    return this.uploads.get(key);
+  }
+  async uploadFeedPdf(name, file) {
+    const { survey } = await this.folders();
+    const existing = await this.find(survey, name);
+    if (existing) return { name, drive_id: existing };
+    const fetcher = this.fetcher;
+    const check = response => {
+      if (response.status === 401) this.onExpired();
+      if (!response.ok) throw new DriveError(response.status, 'アップロードできませんでした');
+    };
+    const response = await fetcher('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+      method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json', 'X-Upload-Content-Type': 'application/pdf', 'X-Upload-Content-Length': String(file.size) },
+      body: JSON.stringify({ name, parents: [survey], mimeType: 'application/pdf' }), cache: 'no-store',
+    });
+    check(response);
+    const location = new URL(response.headers.get('Location'));
+    if (location.origin !== 'https://www.googleapis.com' || location.pathname !== '/upload/drive/v3/files' || location.searchParams.get('uploadType') !== 'resumable') {
+      throw new Error('アップロード先を確認できませんでした。');
+    }
+    const uploaded = await fetcher(location.href, {
+      method: 'PUT', headers: { ...this.headers(), 'Content-Type': 'application/pdf' }, body: file, cache: 'no-store',
+    });
+    check(uploaded);
+    const result = await uploaded.json();
+    if (!result?.id || typeof result.id !== 'string') throw new Error('アップロードした PDF を確認できませんでした。');
+    return { name, drive_id: result.id };
   }
   async pdfId(paper, signal) {
     if (!paper.pdf) return null;

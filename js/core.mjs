@@ -1,3 +1,5 @@
+import { normalizeFeed } from './feed.mjs';
+
 export const DEFAULT_PATH = 'University/01_reaserch/survey';
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const string = value => typeof value === 'string' ? value : '';
@@ -6,6 +8,7 @@ export function normalizeLibrary(data) {
   if (!data || !Array.isArray(data.papers)) throw new Error('papers.json の papers 配列を読めません');
   return {
     generated: string(data.generated),
+    feed: normalizeFeed(data.feed),
     papers: data.papers.filter(p => p && typeof p === 'object').map((p, index) => ({
       id: string(p.id) || `missing-id-${index}`,
       ...Object.fromEntries(['title', 'title_jp', 'authors', 'venue', 'type', 'doi', 'importance', 'read_status', 'bibtex'].map(key => [key, string(p[key])])),

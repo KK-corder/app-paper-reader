@@ -4,3 +4,5 @@ import './pdf.test.mjs';
 import './pwa.test.mjs';
 import './pdf-data.test.mjs';
 import './reading.test.mjs';
+import './feed.test.mjs';
+import './feed-app.test.mjs';

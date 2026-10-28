@@ -15,6 +15,17 @@
 
 ---
 
+## 2026-10-28 今日の一本の PDF の名前は Mac が決め、アプリは papers.json の `pdf_name` を使う
+- 決定: アプリが `survey/` に入れる PDF の名前は、Mac（WorkSpace）が `insert_to_notion.py` の `sanitize_filename(題).pdf` で計算して `feed[].pdf_name` に入れる。アプリは名前を作らず、同名が `survey/` にあればアップロードしない
+- 理由: Notion に登録するときに名前が変わると、`papers.json` の `pdf.name` とずれて開けなくなる。規則を 2 か所に書くとずれるので、正を Mac 側の 1 か所にする
+- 却下した案: アプリが同じ規則を JavaScript で持つ（規則が変わったときに追いつかない）
+- 決めた人: Claude（要件 §2.2「細かい規則は Dev と WorkSpace で合わせる」の範囲内）
+
+## 2026-10-28 フィードの論文は `papers` に混ぜず `feed` に分け、PDF を入れた・見送ったは `_reader/feed_log.json` に書く
+- 決定: `papers.json` の今の形は変えず `feed` を足す（`today` はもう使わない）。アプリは `reading_log.json` とは別の `feed_log.json` に追記する。書き込みのスコープは `drive.readonly` と `drive.file` のまま
+- 理由: フィードの論文は Notion のページ ID を持たないので、`papers` の `id` の約束に乗らない。`reading_log.json` を変えると Mac の反映処理（`apply_reading_log.py`）も変える必要がある
+- 決めた人: Claude（形）・ユーザー（2026-10-28: 7 日の表示は PDF を入れた日だけを数える・メモ欄は次のブリーフ・Mac 側は依頼書を書いて WorkSpace で）
+
 ## 2026-10-24 読了はドライブの reading_log.json に追記し、Mac が Notion に戻す
 - 決定: アプリは `drive.file` を足して `survey/_reader/reading_log.json` に追記だけする。Mac（WorkSpace）が 30 分ごとに読んで Notion の Read Status を書き換え、papers.json を書き出し直す。押した時刻が papers.json の `generated` より新しい間は、端末の値で表示を上書きする
 - 理由: Notion のキーを iPhone に置かない（要件 §3）。`drive.file` ならアプリが作ったファイルしか書けず、PDF や papers.json を壊せない

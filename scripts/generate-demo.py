@@ -73,7 +73,20 @@ def main():
         dict(base, id='demo-empty', title='D. An Empty Summary', title_jp='要約のない架空の論文', summary=[], tags=['空欄テスト'], authors='', year=None, venue='', type='', doi='', bibtex='', importance='★'),
         dict(base, id='demo-missing', title='E. A Missing File', title_jp='見つからない PDF の架空の例', pdf={'name': 'missing-demo.pdf', 'drive_id': None}, tags=['記録'], summary=[], importance='★'),
     ]
-    (demo / 'papers.json').write_text(json.dumps({'generated': '2026-10-24T12:00:00+09:00', 'today': 'demo-read', 'papers': papers}, ensure_ascii=False, indent=2) + '\n')
+    feed_base = dict(authors='Demo Author C（架空）', venue='Fictional Morning Workshop', year=2026,
+                     doi='10.0000/fictional-morning-demo', url='', oa_pdf='',
+                     ja='紙の庭に浮かぶ光のしおりを比べる架空の論文です。画面確認のために作った内容です。',
+                     why='毎朝 PDF を入れて要約と並べて読む流れを、架空の題材で試せます。',
+                     abstract='This fictional study imagines glowing bookmarks in a paper garden. No real research or participants are described.',
+                     pdf=None, skipped=False, notion_id=None)
+    titles = ['今日の架空の光のしおり', '昨日の架空の紙の小道', '一昨日の架空の雲の図書館', 'PDF 入りの架空の星の頁', '見送り済みの架空の砂の本']
+    feed = [dict(feed_base, key=f'demo-feed-{index}', served=f'2026-10-{28-index:02}', title=title,
+                 pdf_name=f'{title}.pdf') for index, title in enumerate(titles)]
+    feed[0]['oa_pdf'] = './demo/reader-demo.pdf'
+    feed[1]['oa_pdf'] = './demo/reader-demo.pdf'
+    feed[3]['pdf'] = {'name': 'reader-demo.pdf', 'drive_id': None}
+    feed[4]['skipped'] = True
+    (demo / 'papers.json').write_text(json.dumps({'generated': '2026-10-24T12:00:00+09:00', 'today': 'demo-read', 'papers': papers, 'feed': feed}, ensure_ascii=False, indent=2) + '\n')
     icons = ROOT / 'icons'
     icons.mkdir(exist_ok=True)
     for size in (192, 512):
