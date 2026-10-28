@@ -80,6 +80,7 @@ def main():
                      abstract='This fictional study imagines glowing bookmarks in a paper garden. No real research or participants are described.',
                      pdf=None, skipped=False, notion_id=None)
     titles = ['今日の架空の光のしおり', '昨日の架空の紙の小道', '一昨日の架空の雲の図書館', 'PDF 入りの架空の星の頁', '見送り済みの架空の砂の本']
+    titles += [f'架空の読書の庭の観察 {index}' for index in range(1, 12)]
     feed = [dict(feed_base, key=f'demo-feed-{index}', served=f'2026-10-{28-index:02}', title=title,
                  pdf_name=f'{title}.pdf') for index, title in enumerate(titles)]
     feed[0]['oa_pdf'] = './demo/reader-demo.pdf'

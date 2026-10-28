@@ -1,6 +1,6 @@
 import { acquisitionURL, doiURL } from './feed.mjs';
 
-export function renderFeed(document, container, items, { today, days, onOpen, onUpload, onSkip, clipboard, messages, busy }) {
+export function renderFeed(document, container, items, { today, days, onOpen, onUpload, onSkip, clipboard, messages, busy, waitingExpanded = false, onToggleWaiting }) {
   const el = (tag, text, cls) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -85,15 +85,22 @@ export function renderFeed(document, container, items, { today, days, onOpen, on
   }
   const waiting = items.filter(item => item.served !== today && !item.pdf && !item.skipped);
   if (waiting.length) {
-    container.append(el('h2', 'PDF 待ち'));
-    for (const item of waiting) {
+    container.append(el('h2', `PDF 待ち ${waiting.length} 本`));
+    for (const item of waitingExpanded ? waiting : waiting.slice(0, 10)) {
       const row = el('article', undefined, 'feed-waiting');
       const title = el('div');
       title.append(el('h3', item.title), el('time', item.served, 'muted'));
+      const age = (Date.parse(today) - Date.parse(item.served)) / 86400_000;
+      if (age > 7) title.append(el('small', ` ${age} 日前`, 'muted'));
       row.append(title);
       actions(item, row);
       container.append(row);
     }
+  }
+  if (waiting.length > 10) {
+    const toggle = button(waitingExpanded ? 'たたむ' : `残り ${waiting.length - 10} 本を表示`, onToggleWaiting);
+    toggle.setAttribute('aria-expanded', String(waitingExpanded));
+    container.append(toggle);
   }
   container.append(el('p', `この 7 日で PDF を入れた日 ${days}/7`, 'muted feed-days'));
 }

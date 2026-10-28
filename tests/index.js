@@ -6,3 +6,4 @@ import './pdf-data.test.mjs';
 import './reading.test.mjs';
 import './feed.test.mjs';
 import './feed-app.test.mjs';
+import './feed-view.test.mjs';

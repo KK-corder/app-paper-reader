@@ -80,6 +80,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   let readingError = '';
   let feedError = '';
   let uploading = false;
+  let waitingExpanded = false;
   const feedMessages = new Map();
   const demoPdfs = new Map();
   const pdfAvailability = new Map();
@@ -132,6 +133,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   function drawFeed() {
     renderFeed(document, $('feed-list'), (library.feed || []).map(item => feed.item(item, library.generated)), {
       today: japanDay(), days: feed.days(), onOpen: openFeed, onUpload: uploadFeed,
+      waitingExpanded, onToggleWaiting: () => { waitingExpanded = !waitingExpanded; drawFeed(); },
       onSkip: (item, action) => { if (!uploading && feed.record(item.key, action)) return feed.flush(); },
       clipboard: window.navigator.clipboard, messages: feedMessages, busy: uploading,
     });
