@@ -1,4 +1,5 @@
 import { validSession } from './login.mjs';
+import { COMMENT_LIMIT, commentLength } from './comments.mjs';
 import { validatePdf, validFeedEvent, sameFeedEvent } from './feed.mjs';
 
 export function escapeDriveValue(value) { return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
@@ -57,6 +58,13 @@ export class Drive {
     return this.appendLog('reading_log.json', { id: event.id, read_status: event.read_status, at: event.at },
       row => row?.id === event.id && row.read_status === event.read_status && row.at === event.at);
   }
+  async appendComment(event) {
+    if (typeof event?.id !== 'string' || !event.id || typeof event.comment !== 'string' || commentLength(event.comment) > COMMENT_LIMIT || typeof event.at !== 'string' || !Number.isFinite(Date.parse(event.at)) || !event.at.endsWith('+09:00')) {
+      throw new Error('コメントの記録の形式を確認してください。');
+    }
+    return this.appendLog('comment_log.json', { id: event.id, comment: event.comment, at: event.at },
+      row => row?.id === event.id && row.comment === event.comment && row.at === event.at);
+  }
   async appendFeed(event) {
     if (!validFeedEvent(event)) throw new Error('フィードの記録の形式を確認してください。');
     const row = { key: event.key, action: event.action, at: event.at };
@@ -72,7 +80,7 @@ export class Drive {
     return log.events;
   }
   async appendLog(name, event, matches) {
-    if (!['reading_log.json', 'feed_log.json'].includes(name)) throw new Error('書き込めないファイルです。');
+    if (!['reading_log.json', 'feed_log.json', 'comment_log.json'].includes(name)) throw new Error('書き込めないファイルです。');
     const { reader } = await this.folders();
     const id = await this.find(reader, name);
     let log = { events: [] };

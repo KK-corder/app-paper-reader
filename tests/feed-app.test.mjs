@@ -46,7 +46,7 @@ async function realApp(t, server = feedDrive(libraryForDrive()), saved = savedSe
   return { ...dom, app, server };
 }
 
-test('demo shows today summaries, a collapsed abstract, ten waiting papers, and days independently of filters and search', async t => {
+test('demo shows today summaries, a collapsed abstract, five waiting papers, and days independently of filters and search', async t => {
   const dom = makeDOM();
   const app = await startApp({ ...dom, Viewer, fetcher: demoFetch });
   t.after(() => app.dispose());
@@ -55,7 +55,7 @@ test('demo shows today summaries, a collapsed abstract, ten waiting papers, and 
   assert.match(text, /これは何の論文か/);
   assert.match(text, /あなたにとっての意味/);
   assert.match(text, /この 7 日で PDF を入れた日 0\/7/);
-  assert.equal(waiting(dom).length, 10);
+  assert.equal(waiting(dom).length, 5);
   assert.equal(card(dom).descendants('details')[0].open, false);
   const getPdf = card(dom).descendants('a').find(node => node.textContent === 'PDF を取ってくる');
   assert.equal(getPdf.href, 'http://localhost:8080/PaperReader/demo/reader-demo.pdf');
@@ -107,9 +107,9 @@ test('demo skip removes a waiting row, folds today, and unskip restores it witho
   let app = await startApp({ ...dom, Viewer, fetcher: demoFetch });
   t.after(() => app.dispose());
   await button(waiting(dom)[0], '見送る').emit('click');
-  assert.equal(waiting(dom).length, 10);
+  assert.equal(waiting(dom).length, 5);
   assert.match(dom.$('feed-list').textContent, /PDF 待ち 12 本/);
-  assert.equal(waiting(dom).at(-1).descendants('h3')[0].textContent, fixture.feed[13].title);
+  assert.equal(waiting(dom).at(-1).descendants('h3')[0].textContent, fixture.feed[8].title);
   await button(card(dom), '見送る').emit('click');
   assert.match(card(dom).textContent, /見送り済み・取り消す/);
   assert.equal(card(dom).descendants('details').length, 0);
@@ -117,7 +117,7 @@ test('demo skip removes a waiting row, folds today, and unskip restores it witho
   app.dispose();
   const reload = makeDOM('?demo=1', dom.storage);
   app = await startApp({ ...reload, Viewer, fetcher: demoFetch });
-  assert.equal(waiting(reload).length, 10);
+  assert.equal(waiting(reload).length, 5);
   assert.match(card(reload).textContent, /見送り済み/);
   await button(card(reload), '取り消す').emit('click');
   assert.ok(button(card(reload), 'PDF を入れる'));
@@ -311,23 +311,23 @@ test('demo expands, collapses, refills after PDF upload, and forgets expansion o
   t.after(() => app.dispose());
   const list = dom.$('feed-list');
   assert.match(list.textContent, /PDF 待ち 13 本/);
-  assert.equal(waiting(dom).length, 10);
+  assert.equal(waiting(dom).length, 5);
   const saved = dom.storage.get('paper-reader-v1');
-  await button(list, '残り 3 本を表示').emit('click');
+  await button(list, '残り 8 本を表示').emit('click');
   assert.equal(waiting(dom).length, 13);
   assert.equal(button(list, 'たたむ').getAttribute('aria-expanded'), 'true');
   await button(list, 'たたむ').emit('click');
-  assert.equal(waiting(dom).length, 10);
+  assert.equal(waiting(dom).length, 5);
   assert.equal(dom.storage.get('paper-reader-v1'), saved);
   await choose(waiting(dom)[0]);
   await dom.$('back-list').emit('click');
   assert.match(list.textContent, /PDF 待ち 12 本/);
-  assert.equal(waiting(dom).length, 10);
-  assert.equal(waiting(dom).at(-1).descendants('h3')[0].textContent, fixture.feed[13].title);
-  await button(list, '残り 2 本を表示').emit('click');
+  assert.equal(waiting(dom).length, 5);
+  assert.equal(waiting(dom).at(-1).descendants('h3')[0].textContent, fixture.feed[8].title);
+  await button(list, '残り 7 本を表示').emit('click');
   app.dispose();
   const reload = makeDOM('?demo=1', dom.storage);
   app = await startApp({ ...reload, Viewer, fetcher: demoFetch });
-  assert.equal(waiting(reload).length, 10);
-  assert.ok(button(reload.$('feed-list'), '残り 2 本を表示'));
+  assert.equal(waiting(reload).length, 5);
+  assert.ok(button(reload.$('feed-list'), '残り 7 本を表示'));
 });

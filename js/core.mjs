@@ -11,7 +11,7 @@ export function normalizeLibrary(data) {
     feed: normalizeFeed(data.feed),
     papers: data.papers.filter(p => p && typeof p === 'object').map((p, index) => ({
       id: string(p.id) || `missing-id-${index}`,
-      ...Object.fromEntries(['title', 'title_jp', 'authors', 'venue', 'type', 'doi', 'importance', 'read_status', 'bibtex'].map(key => [key, string(p[key])])),
+      ...Object.fromEntries(['title', 'title_jp', 'authors', 'venue', 'type', 'doi', 'importance', 'read_status', 'bibtex', 'added', 'comment'].map(key => [key, string(p[key])])),
       year: typeof p.year === 'number' && Number.isFinite(p.year) ? p.year : null,
       tags: Array.isArray(p.tags) ? p.tags.filter(t => typeof t === 'string') : [],
       pdf: p.pdf && string(p.pdf.name).trim() ? { name: p.pdf.name, drive_id: string(p.pdf.drive_id) || null } : null,
@@ -35,14 +35,28 @@ export function normalizeFilters(filters = {}, availableTags) {
   };
 }
 
-export function selectPapers(papers, query = '', filters = {}) {
+export function normalizeSort(sort) {
+  return ['stars-desc', 'stars-asc', 'added-desc', 'added-asc'].includes(sort) ? sort : 'stars-desc';
+}
+
+function compareAdded(a, b, direction) {
+  const left = Date.parse(a.added), right = Date.parse(b.added);
+  if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
+  if (!Number.isFinite(right)) return -1;
+  return (left - right) * direction;
+}
+
+export function selectPapers(papers, query = '', filters = {}, sort) {
   const needle = query.trim().toLocaleLowerCase();
   const { status, tags } = normalizeFilters(filters);
   const stars = p => (p.importance.match(/★/g) || []).length;
+  const order = normalizeSort(sort);
   return papers.filter(p => (status === 'all' || (p.read_status === '未読') === (status === 'unread'))
     && tags.every(tag => p.tags.includes(tag))
     && [p.title, p.title_jp, ...p.tags].some(s => s.toLocaleLowerCase().includes(needle)))
-    .sort((a, b) => Number(b.read_status === '未読') - Number(a.read_status === '未読') || stars(b) - stars(a) || a.title.localeCompare(b.title, 'ja'));
+    .sort((a, b) => (order.startsWith('stars')
+      ? (stars(a) - stars(b)) * (order === 'stars-asc' ? 1 : -1) || compareAdded(a, b, -1)
+      : compareAdded(a, b, order === 'added-asc' ? 1 : -1)) || a.title.localeCompare(b.title, 'ja'));
 }
 
 export function currentPage(tops, scrollTop, height) {

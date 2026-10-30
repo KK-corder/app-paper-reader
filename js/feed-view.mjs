@@ -86,7 +86,7 @@ export function renderFeed(document, container, items, { today, days, onOpen, on
   const waiting = items.filter(item => item.served !== today && !item.pdf && !item.skipped);
   if (waiting.length) {
     container.append(el('h2', `PDF 待ち ${waiting.length} 本`));
-    for (const item of waitingExpanded ? waiting : waiting.slice(0, 10)) {
+    for (const item of waitingExpanded ? waiting : waiting.slice(0, 5)) {
       const row = el('article', undefined, 'feed-waiting');
       const title = el('div');
       title.append(el('h3', item.title), el('time', item.served, 'muted'));
@@ -97,8 +97,8 @@ export function renderFeed(document, container, items, { today, days, onOpen, on
       container.append(row);
     }
   }
-  if (waiting.length > 10) {
-    const toggle = button(waitingExpanded ? 'たたむ' : `残り ${waiting.length - 10} 本を表示`, onToggleWaiting);
+  if (waiting.length > 5) {
+    const toggle = button(waitingExpanded ? 'たたむ' : `残り ${waiting.length - 5} 本を表示`, onToggleWaiting);
     toggle.setAttribute('aria-expanded', String(waitingExpanded));
     container.append(toggle);
   }

@@ -2,8 +2,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; overflow: hidden; }
-button, input, select { font: inherit; font-size: 16px; }
-button, select, input { border: 1px solid var(--border); border-radius: 8px; background: white; color: inherit; }
+button, input, select, textarea { font: inherit; font-size: 16px; }
+button, select, input, textarea { border: 1px solid var(--border); border-radius: 8px; background: white; color: inherit; }
 button { min-height: 40px; padding: 7px 12px; cursor: pointer; touch-action: manipulation; }
 button:hover { background: #eaf1ef; }
 button:disabled { opacity: .55; cursor: default; }
@@ -126,3 +126,12 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; padding: 
 .feed-waiting .feed-actions { margin-top: 0; }
 .feed-message { flex-basis: 100%; margin-top: 8px; }
 .feed-days { margin: 8px 0 16px; }
+
+.sort-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; min-width: 0; }
+.sort-row label { margin: 0; flex-shrink: 0; }
+.sort-row select { width: auto; max-width: 100%; min-width: 0; flex: 1; }
+.paper-comment { color: var(--accent); }
+.paper-comment small { font-size: 11px; }
+.paper-comment p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; white-space: pre-wrap; }
+#comment-editor { display: block; width: 100%; max-width: 100%; min-width: 0; padding: 10px; line-height: 1.6; resize: vertical; }
+.tabs { min-width: 0; flex-wrap: wrap; }

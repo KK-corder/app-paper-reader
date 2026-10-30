@@ -1,4 +1,4 @@
-import { DEFAULT_PATH, clamp, normalizeFilters } from './core.mjs';
+import { DEFAULT_PATH, clamp, normalizeFilters, normalizeSort } from './core.mjs';
 
 export const STORAGE_KEY = 'paper-reader-v1';
 export function createStore(storage, onError = () => {}) {
@@ -13,6 +13,12 @@ export function createStore(storage, onError = () => {}) {
     pages: saved.pages && typeof saved.pages === 'object' ? saved.pages : {},
     panelWidth: clamp(Number(saved.panelWidth) || 50, 25, 75),
     filters: normalizeFilters(saved.filters),
+    sort: normalizeSort(saved.sort),
+    comments: {
+      pending: Array.isArray(saved.comments?.pending) ? saved.comments.pending : [],
+      overrides: saved.comments?.overrides && typeof saved.comments.overrides === 'object' ? saved.comments.overrides : {},
+      lastAt: Number(saved.comments?.lastAt) || 0,
+    },
     reading: {
       pending: Array.isArray(saved.reading?.pending) ? saved.reading.pending : [],
       overrides: saved.reading?.overrides && typeof saved.reading.overrides === 'object' ? saved.reading.overrides : {},
@@ -29,7 +35,7 @@ export function createStore(storage, onError = () => {}) {
     state,
     save() {
       try { storage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
-      catch { onError('端末に保存できません。読了の記録・ページ・ログイン状態は、閉じると失われます。'); return false; }
+      catch { onError('端末に保存できません。読了・コメントの記録・ページ・ログイン状態は、閉じると失われます。'); return false; }
     },
     clearReading() { state.folders = {}; state.pages = {}; state.panelWidth = 50; this.save(); },
     page(id) { return Math.max(1, Math.floor(Number(state.pages[id]) || 1)); },

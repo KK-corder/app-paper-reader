@@ -12,15 +12,15 @@ function draw(items, today = '2026-10-28') {
 }
 const item = (index, served) => ({ key: String(index), title: `架空 ${index}`, served });
 
-test('waiting counts zero through eleven, hides empty heading, and limits newest rows to ten', () => {
-  for (const count of [0, 1, 9, 10, 11]) {
+test('waiting counts zero through six, hides empty heading, and limits newest rows to five', () => {
+  for (const count of [0, 1, 4, 5, 6, 13]) {
     const items = Array.from({ length: count }, (_, index) => item(index, `2026-10-${String(index + 1).padStart(2, '0')}`));
     const container = draw(items);
     const rows = container.children.filter(node => node.className === 'feed-waiting');
-    assert.equal(rows.length, Math.min(count, 10));
-    assert.deepEqual(rows.map(row => row.descendants('time')[0].textContent), items.map(i => i.served).reverse().slice(0, 10));
+    assert.equal(rows.length, Math.min(count, 5));
+    assert.deepEqual(rows.map(row => row.descendants('time')[0].textContent), items.map(i => i.served).reverse().slice(0, 5));
     assert.equal(container.descendants('h2').some(node => node.textContent === `PDF 待ち ${count} 本`), count > 0);
-    assert.equal(container.descendants('button').some(node => node.textContent === '残り 1 本を表示'), count === 11);
+    assert.deepEqual(container.descendants('button').filter(node => node.textContent.startsWith('残り ')).map(node => node.textContent), count > 5 ? [`残り ${count - 5} 本を表示`] : []);
   }
 });
 

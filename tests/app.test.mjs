@@ -31,9 +31,9 @@ test('demo flow: list, filters, open, tabs, DOI, copy, split limits, sheet, pers
   const { $, settings, document, window } = dom;
   assert.equal($('list-view').hidden, false);
   assert.equal($('paper-list').children.length, 6);
-  assert.match($('paper-list').children[0].textContent, /Imaginary Light Blocks/);
-  assert.match($('paper-list').children[2].textContent, /PDF なし/);
-  assert.match($('paper-list').children[4].textContent, /PDF なし/);
+  assert.match($('paper-list').children[0].textContent, /Previously Read Paper/);
+  assert.match($('paper-list').children[3].textContent, /PDF なし/);
+  assert.match($('paper-list').children[5].textContent, /PDF なし/);
   $('filter').value = '光の模'; await $('filter').emit('input');
   assert.equal($('paper-list').children.length, 1);
   $('filter').value = '積み木'; await $('filter').emit('input');
@@ -74,7 +74,7 @@ test('demo flow: list, filters, open, tabs, DOI, copy, split limits, sheet, pers
   app.dispose();
   const reloaded = makeDOM('?demo=1', dom.storage);
   app = await startApp({ ...reloaded, Viewer, fetcher: fakeFetch });
-  await reloaded.$('paper-list').children[0].emit('click');
+  await reloaded.$('paper-list').children.find(row => row.textContent.includes('Imaginary Light Blocks')).emit('click');
   assert.equal(app.viewer.calls.at(-1).page, 7);
   assert.equal(app.store.state.panelWidth, 60);
   await app.openPaper({ ...fixture.papers[3], pdf: null });
@@ -169,16 +169,16 @@ test('an expired saved session is discarded at startup without redirect or netwo
 
 const detailStatus = dom => dom.$('details-content').descendants('dd')[9].textContent;
 
-test('demo read button updates details, rows and unread ordering, survives app reload, and never writes to Drive', async () => {
+test('demo read button updates details and rows without changing the selected ordering, survives app reload, and never writes to Drive', async () => {
   const dom = makeDOM();
   let app = await startApp({ ...dom, Viewer, fetcher: fakeFetch });
-  await dom.$('paper-list').children[0].emit('click');
+  await dom.$('paper-list').children[1].emit('click');
   const title = dom.$('reader-title').textContent;
   assert.equal(dom.$('read-toggle').textContent, '読了にする');
   await dom.$('read-toggle').emit('click');
   assert.equal(dom.$('read-toggle').textContent, '未読に戻す');
   assert.equal(detailStatus(dom), '読了');
-  assert.notEqual(dom.$('paper-list').children[0].children[0].textContent, title);
+  assert.equal(dom.$('paper-list').children[1].children[0].textContent, title);
   assert.match(dom.$('paper-list').children.find(row => row.children[0].textContent === title).textContent, /読了/);
   assert.equal(app.store.state.reading.pending.length, 0);
   assert.equal(app.viewer.calls.length, 1, 'changing read status must not reopen the PDF');
@@ -191,7 +191,7 @@ test('demo read button updates details, rows and unread ordering, survives app r
   await reloaded.$('read-toggle').emit('click');
   assert.equal(reloaded.$('read-toggle').textContent, '読了にする');
   assert.equal(detailStatus(reloaded), '未読');
-  assert.equal(reloaded.$('paper-list').children[0].children[0].textContent, title);
+  assert.equal(reloaded.$('paper-list').children[1].children[0].textContent, title);
   app.dispose();
 });
 
@@ -409,4 +409,157 @@ test('library refresh rebuilds tag counts, prunes vanished selections and treats
   assert.equal(saved.pages.saved, 7);
   assert.equal($('count').textContent, '1 本 / 1 本');
   app.dispose();
+});
+
+test('demo four sorts persist across reload, filters/search/reset preserve sort and read toggles do not reorder', async t => {
+  const dom = makeDOM();
+  let app = await startApp({ ...dom, Viewer, fetcher: fakeFetch });
+  t.after(() => app.dispose());
+  let $ = dom.$;
+  const titles = () => $('paper-list').children.map(card => card.children[0].textContent);
+  const title = id => fixture.papers.find(p => p.id === id).title;
+  const orders = {
+    'stars-desc': ['demo-read', 'demo-first', 'demo-long', 'demo-no-pdf', 'demo-empty', 'demo-missing'],
+    'stars-asc': ['demo-empty', 'demo-missing', 'demo-no-pdf', 'demo-first', 'demo-long', 'demo-read'],
+    'added-desc': ['demo-first', 'demo-empty', 'demo-long', 'demo-no-pdf', 'demo-read', 'demo-missing'],
+    'added-asc': ['demo-missing', 'demo-read', 'demo-no-pdf', 'demo-long', 'demo-empty', 'demo-first'],
+  };
+  for (const [sort, ids] of Object.entries(orders)) {
+    $('sort').value = sort;
+    await $('sort').emit('change');
+    assert.deepEqual(titles(), ids.map(title));
+    await $('status-filters').children.find(b => b.textContent === '未読').emit('click');
+    $('filter').value = '読書UI';
+    await $('filter').emit('input');
+    assert.deepEqual(titles(), ids.filter(id => ['demo-long', 'demo-first'].includes(id)).map(title));
+    await $('clear-filters').emit('click');
+    assert.equal($('sort').value, sort);
+    assert.deepEqual(titles(), ids.map(title));
+    await $('paper-list').children.find(card => card.children[0].textContent === title('demo-first')).emit('click');
+    await $('read-toggle').emit('click');
+    assert.deepEqual(titles(), ids.map(title));
+    await $('read-toggle').emit('click');
+    await $('back-list').emit('click');
+    app.dispose();
+    const reload = makeDOM('?demo=1', dom.storage);
+    app = await startApp({ ...reload, Viewer, fetcher: fakeFetch });
+    $ = reload.$;
+    assert.equal($('sort').value, sort);
+    assert.deepEqual(titles(), ids.map(title));
+  }
+});
+
+test('demo authors/comments, edit/save/list/restart/delete, length guard, draft discard and feed tab isolation', async t => {
+  const dom = makeDOM();
+  let app = await startApp({ ...dom, Viewer, fetcher: fakeFetch });
+  t.after(() => app.dispose());
+  let $ = dom.$;
+  const card = id => $('paper-list').children.find(n => n.children[0].textContent === fixture.papers.find(p => p.id === id).title);
+  const comment = id => card(id).children.find(n => n.className === 'paper-comment');
+  for (const p of fixture.papers) {
+    assert.equal(card(p.id).children.some(n => n.className === 'muted paper-authors'), !!p.authors);
+    assert.equal(!!comment(p.id), !!p.comment);
+    if (p.comment) assert.equal(comment(p.id).children[1].textContent, p.comment);
+  }
+  await card('demo-first').emit('click');
+  assert.equal($('comment-editor').value, fixture.papers[2].comment);
+  assert.ok($('comment-editor').value.split('\n').length > 3);
+  await $('details-tab').emit('keydown', { key: 'ArrowRight' });
+  assert.equal($('comment-content').hidden, false);
+  assert.equal($('comment-tab').getAttribute('aria-selected'), 'true');
+  assert.equal($('comment-save').disabled, true);
+  const saved = '<img src=x>\n架空の編集したコメント';
+  $('comment-editor').value = saved;
+  await $('comment-editor').emit('input');
+  await $('comment-save').emit('click');
+  assert.equal($('comment-save').disabled, true);
+  assert.equal(comment('demo-first').children[1].textContent, saved);
+  assert.equal(comment('demo-first').descendants('img').length, 0);
+  const state = structuredClone(app.store.state.comments);
+  await $('comment-save').emit('click');
+  assert.deepEqual(app.store.state.comments, state);
+  $('comment-editor').value = '文'.repeat(1001);
+  await $('comment-editor').emit('input');
+  assert.equal($('comment-save').disabled, true);
+  assert.match($('comment-count').textContent, /1000 字まで/);
+  await $('comment-save').emit('click');
+  assert.deepEqual(app.store.state.comments, state);
+  $('comment-editor').value = '文'.repeat(1000);
+  await $('comment-editor').emit('input');
+  assert.equal($('comment-save').disabled, false);
+  $('comment-editor').value = '保存しない下書き';
+  await $('comment-editor').emit('input');
+  await $('back-list').emit('click');
+  await card('demo-first').emit('click');
+  assert.equal($('comment-editor').value, saved);
+  assert.equal(app.store.state.comments.pending.length, 0);
+  app.dispose();
+  const reload = makeDOM('?demo=1', dom.storage);
+  app = await startApp({ ...reload, Viewer, fetcher: fakeFetch });
+  $ = reload.$;
+  assert.equal(comment('demo-first').children[1].textContent, saved);
+  await card('demo-first').emit('click');
+  assert.equal($('comment-editor').value, saved);
+  $('comment-editor').value = '';
+  await $('comment-editor').emit('input');
+  await $('comment-save').emit('click');
+  await $('back-list').emit('click');
+  assert.equal(comment('demo-first'), undefined);
+  await card('demo-first').emit('click');
+  assert.equal($('comment-editor').value, '');
+  const beforeFeed = JSON.stringify(app.store.state.comments);
+  await app.openPaper({ ...fixture.papers[2], id: 'feed:example', feedKey: 'example', pdf: null });
+  assert.equal($('comment-tab').hidden, true);
+  await $('details-tab').emit('keydown', { key: 'ArrowRight' });
+  assert.equal($('summary-tab').getAttribute('aria-selected'), 'true');
+  await $('comment-tab').emit('click');
+  assert.equal($('comment-content').hidden, true);
+  $('comment-editor').value = '禁止';
+  await $('comment-save').emit('click');
+  assert.equal(JSON.stringify(app.store.state.comments), beforeFeed);
+  assert.deepEqual([...dom.storage.keys()], ['paper-reader-v1']);
+});
+
+test('comment 403 exposes login and pending count, online retries, startup sends saved queue and matching export clears the card override', async t => {
+  const dom = makeDOM('');
+  dom.storage.set('paper-reader-v1', JSON.stringify(savedSession()));
+  const library = realLibrary();
+  const server = readingDrive(library, null, 'comment_log.json');
+  let app = await startApp({ ...dom, Viewer, fetcher: server.fetcher });
+  t.after(() => app.dispose());
+  let $ = dom.$;
+  await $('paper-list').children[0].emit('click');
+  server.failure = 403;
+  $('comment-editor').value = '新しいメモ';
+  await $('comment-editor').emit('input');
+  await $('comment-save').emit('click');
+  assert.match($('paper-list').textContent, /新しいメモ/);
+  assert.match($('notice').textContent, /コメント.*もう一度ログイン.*書き込みを許可/);
+  assert.equal($('session-banner').hidden, false);
+  assert.equal($('reading-pending').textContent, '未送信の記録: 1 件');
+  app.dispose();
+  const reload = makeDOM('', dom.storage);
+  server.failure = null;
+  app = await startApp({ ...reload, Viewer, fetcher: server.fetcher });
+  $ = reload.$;
+  assert.equal($('reading-pending').textContent, '');
+  assert.deepEqual(server.log.events.map(e => e.comment), ['新しいメモ']);
+  assert.match($('paper-list').textContent, /新しいメモ/);
+  await $('paper-list').children[0].emit('click');
+  server.failure = new TypeError('offline');
+  $('comment-editor').value = '次のメモ';
+  await $('comment-editor').emit('input');
+  await $('comment-save').emit('click');
+  $('comment-editor').value = 'まだ保存しない';
+  await $('comment-editor').emit('input');
+  server.failure = null;
+  await reload.window.emit('online');
+  assert.equal($('comment-editor').value, 'まだ保存しない', 'send completion must not discard a newer draft');
+  assert.equal($('reading-pending').textContent, '');
+  assert.deepEqual(server.log.events.map(e => e.comment), ['新しいメモ', '次のメモ']);
+  library.papers[0].comment = '次のメモ';
+  await $('back-list').emit('click');
+  await $('reload').emit('click');
+  assert.deepEqual(app.store.state.comments.overrides, {});
+  assert.match($('paper-list').textContent, /次のメモ/);
 });

@@ -34,7 +34,7 @@
       <header class="toolbar"><h1 id="list-title">論文リーダー</h1><span id="demo-badge" class="badge" hidden>デモ</span><div class="toolbar-actions"><button id="reload">再読み込み</button><button class="open-settings">設定</button></div></header>
       <div class="library-scroll">
         <section id="feed-list" class="feed-list" aria-label="今日の一本と PDF 待ち" hidden></section>
-        <div class="list-tools"><label for="filter">題・和題・タグで絞り込み</label><input id="filter" type="search" placeholder="キーワードを入力" autocomplete="off"><div class="filter-row"><div id="status-filters" role="group" aria-label="読んだかどうか"></div><button id="clear-filters" hidden>絞り込みを解除</button></div><div id="tag-filters" class="tag-filters" role="group" aria-label="タグ"></div><div class="list-caption"><span id="count"></span><span id="generated"></span></div><p id="list-message" role="status"></p></div>
+        <div class="list-tools"><label for="filter">題・和題・タグで絞り込み</label><input id="filter" type="search" placeholder="キーワードを入力" autocomplete="off"><div class="filter-row"><div id="status-filters" role="group" aria-label="読んだかどうか"></div><button id="clear-filters" hidden>絞り込みを解除</button></div><div id="tag-filters" class="tag-filters" role="group" aria-label="タグ"></div><div class="sort-row"><label for="sort">並び</label><select id="sort"><option value="stars-desc">★ が多い順</option><option value="stars-asc">★ が少ない順</option><option value="added-desc">追加が新しい順</option><option value="added-asc">追加が古い順</option></select></div><div class="list-caption"><span id="count"></span><span id="generated"></span></div><p id="list-message" role="status"></p></div>
         <main id="paper-list" class="paper-list" aria-label="論文一覧"></main>
       </div>
     </section>
@@ -48,9 +48,10 @@
         </section>
         <div id="splitter" class="splitter" role="separator" tabindex="0" aria-label="PDF の幅" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50"></div>
         <aside id="info-panel" class="info-panel" aria-label="論文の情報">
-          <div class="info-toolbar"><div class="tabs" role="tablist" aria-label="情報の種類"><button id="summary-tab" role="tab" aria-selected="true" aria-controls="summary-content">要約</button><button id="details-tab" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1">基本情報</button></div><button id="sheet-close" aria-label="情報を閉じる">閉じる</button></div>
+          <div class="info-toolbar"><div class="tabs" role="tablist" aria-label="情報の種類"><button id="summary-tab" role="tab" aria-selected="true" aria-controls="summary-content">要約</button><button id="details-tab" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1">基本情報</button><button id="comment-tab" role="tab" aria-selected="false" aria-controls="comment-content" tabindex="-1">コメント</button></div><button id="sheet-close" aria-label="情報を閉じる">閉じる</button></div>
           <div id="summary-content" class="info-content" role="tabpanel" aria-labelledby="summary-tab" tabindex="0"></div>
           <div id="details-content" class="info-content" role="tabpanel" aria-labelledby="details-tab" tabindex="0" hidden></div>
+          <div id="comment-content" class="info-content" role="tabpanel" aria-labelledby="comment-tab" hidden><label for="comment-editor">コメント</label><textarea id="comment-editor" rows="8" aria-describedby="comment-count"></textarea><p id="comment-count" class="muted" role="status"></p><button id="comment-save">保存</button><p id="comment-message" role="status"></p></div>
         </aside>
       </main>
     </section>
@@ -58,7 +59,7 @@
       <header class="toolbar"><button id="settings-back">‹ 戻る</button><h1 id="settings-title">設定</h1></header>
       <main class="settings-content">
         <section><h2>Google アカウント</h2><p id="login-state"></p><p id="client-hint"></p><div class="button-row"><button id="settings-login" class="primary">ログイン</button><button id="logout">ログアウト</button></div></section>
-        <section><h2>読了・フィードの記録</h2><p id="reading-pending" role="status"></p><p id="reading-error" role="status"></p></section>
+        <section><h2>読了・フィード・コメントの記録</h2><p id="reading-pending" role="status"></p><p id="reading-error" role="status"></p></section>
         <form id="settings-form">
           <label for="login-method">ログインの方式</label><select id="login-method"><option value="redirect">リダイレクト（既定）</option><option value="popup">ポップアップ</option></select>
           <p class="muted">ホーム画面版で戻れない場合は、もう一方の方式、または Safari のタブで試してください。</p>

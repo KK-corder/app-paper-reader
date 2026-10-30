@@ -73,6 +73,15 @@ def main():
         dict(base, id='demo-empty', title='D. An Empty Summary', title_jp='要約のない架空の論文', summary=[], tags=['空欄テスト'], authors='', year=None, venue='', type='', doi='', bibtex='', importance='★'),
         dict(base, id='demo-missing', title='E. A Missing File', title_jp='見つからない PDF の架空の例', pdf={'name': 'missing-demo.pdf', 'drive_id': None}, tags=['記録'], summary=[], importance='★'),
     ]
+    added_days = [20, 24, 28, 22, 26, 18]
+    comments = {
+        0: '架空の実験条件を読み返した。次は図と比べたい。',
+        2: '画面確認用の架空のコメントです。\n光の積み木の配置を比べる条件をメモしました。\n次に読むときは図の色分けを確認します。\nこの4行目は一覧では省略し、コメントの編集欄で全文を読めます。',
+        4: '要約がなくてもコメントは残せる。架空のメモ。',
+    }
+    for index, paper in enumerate(papers):
+        paper['added'] = f'2026-10-{added_days[index]:02}T12:00:00+09:00'
+        paper['comment'] = comments.get(index, '')
     feed_base = dict(authors='Demo Author C（架空）', venue='Fictional Morning Workshop', year=2026,
                      doi='10.0000/fictional-morning-demo', url='', oa_pdf='',
                      ja='紙の庭に浮かぶ光のしおりを比べる架空の論文です。画面確認のために作った内容です。',

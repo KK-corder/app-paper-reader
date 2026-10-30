@@ -1,9 +1,10 @@
 import { CLIENT_ID } from '../config.js';
-import { clamp, errorMessage, normalizeLibrary, normalizeFilters, selectPapers, tagCounts } from './core.mjs';
+import { clamp, errorMessage, normalizeLibrary, normalizeFilters, normalizeSort, selectPapers, tagCounts } from './core.mjs';
 import { createStore } from './storage.mjs';
 import { consumeRedirect, DRIVE_SCOPE, loadGIS, redirectURL, validSession } from './login.mjs';
 import { Drive } from './drive.mjs';
 import { createReading } from './reading.mjs';
+import { createComments, COMMENT_LIMIT, commentLength } from './comments.mjs';
 import { createFeed, demoFeedDates, feedPaper, japanDay, manualUploadMessage, validatePdf } from './feed.mjs';
 import { renderFeed } from './feed-view.mjs';
 import { PdfViewer } from './pdf-viewer.mjs';
@@ -78,6 +79,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   let popupClient;
   let popupPreparing;
   let readingError = '';
+  let commentError = '';
   let feedError = '';
   let uploading = false;
   let waitingExpanded = false;
@@ -128,7 +130,17 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
       if (error?.status === 403 || error?.status === 401) $('session-banner').hidden = false;
     },
   });
-  const flushRecords = () => Promise.all([reading.flush(), feed.flush()]);
+  const comments = createComments(store, drive, { demo,
+    onChange: () => { drawList(); readingUI(); },
+    onError: (message, error) => {
+      if (!message && $('notice').textContent === commentError) notify('');
+      commentError = message;
+      readingUI();
+      if (message) notify(message);
+      if (error?.status === 403 || error?.status === 401) $('session-banner').hidden = false;
+    },
+  });
+  const flushRecords = () => Promise.all([reading.flush(), feed.flush(), comments.flush()]);
 
   function drawFeed() {
     renderFeed(document, $('feed-list'), (library.feed || []).map(item => feed.item(item, library.generated)), {
@@ -186,9 +198,9 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   function readingUI() {
-    const count = reading.pendingCount() + feed.pendingCount();
+    const count = reading.pendingCount() + feed.pendingCount() + comments.pendingCount();
     $('reading-pending').textContent = count ? `未送信の記録: ${count} 件` : '';
-    $('reading-error').textContent = [readingError, feedError].filter(Boolean).join('\n');
+    $('reading-error').textContent = [readingError, feedError, commentError].filter(Boolean).join('\n');
   }
   function drawReading() {
     $('read-toggle').hidden = !!activePaper.feedKey;
@@ -304,7 +316,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     for (const [status, button] of statusButtons) button.setAttribute('aria-pressed', String(filters.status === status));
     for (const [tag, button] of tagButtons) button.setAttribute('aria-pressed', String(filters.tags.includes(tag)));
     $('clear-filters').hidden = !($('filter').value.trim() || filters.status !== 'all' || filters.tags.length);
-    const papers = selectPapers(library.papers.map(paper => reading.paper(paper, library.generated)), $('filter').value, filters);
+    $('sort').value = store.state.sort;
+    const papers = selectPapers(library.papers.map(paper => comments.paper(reading.paper(paper, library.generated), library.generated)), $('filter').value, filters, store.state.sort);
     $('paper-list').replaceChildren();
     $('count').textContent = `${papers.length} 本 / ${library.papers.length} 本`;
     $('generated').textContent = library.generated ? `書き出し: ${library.generated}` : '書き出し日時: —';
@@ -312,6 +325,12 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     for (const paper of papers) {
       const card = el('button', undefined, 'paper-card');
       card.append(el('h2', paper.title || '—'), el('p', paper.title_jp || '—', 'muted'));
+      if (paper.authors) card.append(el('p', paper.authors, 'muted paper-authors'));
+      if (paper.comment) {
+        const comment = el('div', undefined, 'paper-comment');
+        comment.append(el('small', 'コメント'), el('p', paper.comment));
+        card.append(comment);
+      }
       const meta = el('div', undefined, 'paper-meta');
       meta.append(el('span', `${paper.year ?? '—'} · ${paper.venue || '—'}`), el('span', paper.importance || '—', 'stars'), el('span', paper.read_status || '—'));
       if (!paper.pdf || pdfAvailability.get(paper.id) === null) meta.append(el('span', 'PDF なし', 'no-pdf'));
@@ -387,11 +406,18 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   function setTab(tab) {
-    for (const name of ['summary', 'details']) {
+    if (tab === 'comment' && activePaper?.feedKey) return;
+    for (const name of ['summary', 'details', 'comment']) {
       $(`${name}-tab`).setAttribute('aria-selected', String(name === tab));
       $(`${name}-tab`).tabIndex = name === tab ? 0 : -1;
       $(`${name}-content`).hidden = name !== tab;
     }
+  }
+  function commentUI() {
+    const length = commentLength($('comment-editor').value);
+    $('comment-count').textContent = length > COMMENT_LIMIT ? `${length} 字 / 1000 字までです。短くしてから保存してください。` : `${length} / 1000 字`;
+    $('comment-save').disabled = !activePaper || !!activePaper.feedKey || length > COMMENT_LIMIT
+      || $('comment-editor').value === (comments.paper(activePaper, library.generated).comment || '');
   }
   function setSheet(open) {
     $('reader-layout').classList.toggle('sheet-open', open);
@@ -410,6 +436,11 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     pdfController = new AbortController();
     const { signal } = pdfController;
     activePaper = paper;
+    $('comment-tab').hidden = !!paper.feedKey;
+    $('comment-editor').value = paper.feedKey ? '' : comments.paper(paper, library.generated).comment || '';
+    $('comment-message').textContent = '';
+    $('comment-content').scrollTop = 0;
+    commentUI();
     viewer.close();
     show('reader');
     setSheet(false);
@@ -451,6 +482,21 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   $('filter').addEventListener('input', drawList);
+  $('sort').addEventListener('change', () => {
+    store.state.sort = normalizeSort($('sort').value);
+    store.save();
+    drawList();
+  });
+  $('comment-editor').addEventListener('input', () => { $('comment-message').textContent = ''; commentUI(); });
+  $('comment-save').addEventListener('click', () => {
+    if (!activePaper || activePaper.feedKey) return;
+    if (comments.record(activePaper, $('comment-editor').value, library.generated)) {
+      $('comment-message').textContent = '端末に保存しました。';
+      commentUI();
+      return comments.flush();
+    }
+    commentUI();
+  });
   $('clear-filters').addEventListener('click', () => {
     $('filter').value = '';
     store.state.filters = normalizeFilters();
@@ -475,12 +521,13 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   });
   $('sheet-toggle').addEventListener('click', () => setSheet(!$('reader-layout').classList.contains('sheet-open')));
   $('sheet-close').addEventListener('click', () => { setSheet(false); $('sheet-toggle').focus(); });
-  for (const tab of ['summary', 'details']) {
+  for (const tab of ['summary', 'details', 'comment']) {
     $(`${tab}-tab`).addEventListener('click', () => setTab(tab));
     $(`${tab}-tab`).addEventListener('keydown', event => {
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
         event.preventDefault();
-        const target = event.key === 'Home' ? 'summary' : event.key === 'End' ? 'details' : tab === 'summary' ? 'details' : 'summary';
+        const tabs = activePaper?.feedKey ? ['summary', 'details'] : ['summary', 'details', 'comment'];
+        const target = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs.at(-1) : tabs[(tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
         setTab(target); $(`${target}-tab`).focus();
       }
     });

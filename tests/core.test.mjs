@@ -9,9 +9,9 @@ import { Drive, escapeDriveValue, searchQuery } from '../js/drive.mjs';
 const fixture = JSON.parse(readFileSync(new URL('../demo/papers.json', import.meta.url)));
 const memory = () => { const values = new Map(); return { values, getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) }; };
 
-test('library orders unread first, stars descending, title tie-break; filters tags and Japanese titles', () => {
+test('library orders stars descending regardless of read status; filters tags and Japanese titles', () => {
   const { papers } = normalizeLibrary(fixture);
-  assert.deepEqual(selectPapers(papers).map(p => p.id), ['demo-first', 'demo-long', 'demo-no-pdf', 'demo-empty', 'demo-missing', 'demo-read']);
+  assert.deepEqual(selectPapers(papers).map(p => p.id), ['demo-read', 'demo-first', 'demo-long', 'demo-no-pdf', 'demo-empty', 'demo-missing']);
   assert.deepEqual(selectPapers(papers, '光の模').map(p => p.id), ['demo-first']);
   assert.deepEqual(selectPapers(papers, '積み木').map(p => p.id), ['demo-first']);
   assert.equal(selectPapers(papers, 'EMPTY')[0].id, 'demo-empty');
@@ -145,10 +145,10 @@ test('Drive calls the fetcher as a plain function, as Safari requires for window
   await drive.library();
 });
 
-test('filters preserve unread/star order, count papers once per tag, and include every non-unread status as read', () => {
+test('filters preserve star order, count papers once per tag, and include every non-unread status as read', () => {
   const { papers } = normalizeLibrary(fixture);
   assert.deepEqual(selectPapers(papers, '', { status: 'unread', tags: ['読書UI'] }).map(p => p.id), ['demo-first', 'demo-long']);
-  assert.deepEqual(selectPapers(papers, '', { tags: ['読書UI', '架空実験'] }).map(p => p.id), ['demo-long', 'demo-read']);
+  assert.deepEqual(selectPapers(papers, '', { tags: ['読書UI', '架空実験'] }).map(p => p.id), ['demo-read', 'demo-long']);
   const statuses = ['未読', '読了', '既読', '', 'その他'].map((read_status, i) => ({ ...papers[0], id: String(i), read_status }));
   assert.deepEqual(selectPapers(statuses, '', { status: 'read' }).map(p => p.id), ['1', '2', '3', '4']);
   assert.deepEqual(tagCounts([{ tags: ['a', 'a', 'b'] }, { tags: ['b'] }]), [{ tag: 'b', count: 2 }, { tag: 'a', count: 1 }]);
@@ -167,4 +167,46 @@ test('filter storage defaults for old data and validates malformed saved choices
   assert.deepEqual(reloaded.state.filters, { status: 'read', tags: ['a'] });
   assert.equal(reloaded.page('paper'), 7);
   assert.deepEqual(createStore(memory()).state.filters, { status: 'all', tags: [] });
+});
+
+test('four sort orders resolve star/date/title ties and keep missing or invalid dates last in both directions', () => {
+  const rows = [
+    { id: 'a', title: 'A', importance: '★★', added: '2026-10-20T00:00:00+09:00', read_status: '未読' },
+    { id: 'b', title: 'B', importance: '★★', added: '2026-10-22T00:00:00+09:00', read_status: '読了' },
+    { id: 'c', title: 'C', importance: '★', added: '2026-10-22T00:00:00+09:00' },
+    { id: 'd', title: 'D', importance: '★★', added: 'bad' },
+    { id: 'e', title: 'E', importance: '★★' },
+    { id: 'f', title: 'F', importance: '★★', added: '2026-10-21T15:00:00Z' },
+  ].map(p => ({ ...p, tags: ['tag'] }));
+  const { papers } = normalizeLibrary({ papers: rows });
+  const orders = {
+    'stars-desc': ['b', 'f', 'a', 'd', 'e', 'c'],
+    'stars-asc': ['c', 'b', 'f', 'a', 'd', 'e'],
+    'added-desc': ['b', 'c', 'f', 'a', 'd', 'e'],
+    'added-asc': ['a', 'b', 'c', 'f', 'd', 'e'],
+  };
+  for (const [sort, expected] of Object.entries(orders)) {
+    assert.deepEqual(selectPapers(papers, '', {}, sort).map(p => p.id), expected);
+    assert.deepEqual(selectPapers(papers, 'tag', { tags: ['tag'], status: 'read' }, sort).map(p => p.id), expected.filter(id => id !== 'a'));
+  }
+  assert.deepEqual(selectPapers(papers, '', {}, 'unknown').map(p => p.id), orders['stars-desc']);
+  assert.deepEqual(papers.map(p => p.id), rows.map(p => p.id), 'sorting must not mutate the source');
+  assert.equal(papers[4].added, '');
+  assert.ok(papers.every(p => p.comment === ''));
+});
+
+test('old storage and papers accept missing added/comments; all saved sorts reload and unknown sorts default', () => {
+  const storage = memory();
+  for (const sort of [undefined, 'unknown', null, 'stars-desc', 'stars-asc', 'added-desc', 'added-asc']) {
+    storage.setItem(STORAGE_KEY, JSON.stringify({ sort, pages: { paper: 7 } }));
+    const store = createStore(storage);
+    const expected = typeof sort === 'string' && sort !== 'unknown' ? sort : 'stars-desc';
+    assert.equal(store.state.sort, expected);
+    assert.deepEqual(store.state.comments, { pending: [], overrides: {}, lastAt: 0 });
+    store.save();
+    assert.equal(createStore(storage).state.sort, expected);
+    assert.equal(createStore(storage).page('paper'), 7);
+  }
+  const { papers } = normalizeLibrary({ papers: [{ id: 'old' }, { id: 'invalid', added: null, comment: 42 }] });
+  assert.ok(papers.every(p => p.added === '' && p.comment === ''));
 });

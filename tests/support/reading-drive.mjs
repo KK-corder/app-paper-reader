@@ -9,7 +9,7 @@ export function savedSession(extra = {}) {
   };
 }
 
-export function readingDrive(library = { papers: [], generated: '' }, initialLog = null) {
+export function readingDrive(library = { papers: [], generated: '' }, initialLog = null, logName = 'reading_log.json') {
   const server = { log: initialLog, requests: [], failure: null, beforeWrite: null, lostResponse: false, invalidJSON: false };
   server.fetcher = async function (input, options) {
     if (this !== undefined) throw new TypeError('fetch must be called without this');
@@ -29,7 +29,7 @@ export function readingDrive(library = { papers: [], generated: '' }, initialLog
         assert.match(options.headers['Content-Type'], /^multipart\/related;/);
         const parts = options.body.split(`--${boundary}`);
         const parse = part => JSON.parse(part.split('\r\n\r\n')[1].trim());
-        assert.deepEqual(parse(parts[1]), { name: 'reading_log.json', parents: ['reader-id'], mimeType: 'application/json' });
+        assert.deepEqual(parse(parts[1]), { name: logName, parents: ['reader-id'], mimeType: 'application/json' });
         server.log = parse(parts[2]);
       } else {
         assert.equal(options.method, 'PATCH', 'only the permitted two write operations may be used');
@@ -45,7 +45,7 @@ export function readingDrive(library = { papers: [], generated: '' }, initialLog
     if (url.searchParams.has('q')) {
       const q = url.searchParams.get('q');
       assert.match(q, /^'reader-id' in parents and trashed = false and name = '/);
-      if (q.endsWith("name = 'reading_log.json'")) result = { files: server.log === null ? [] : [{ id: 'log-id' }] };
+      if (q.endsWith(`name = '${logName}'`)) result = { files: server.log === null ? [] : [{ id: 'log-id' }] };
       else if (q.endsWith("name = 'feed_log.json'")) result = { files: [] };
       else { assert.ok(q.endsWith("name = 'papers.json'")); result = { files: [{ id: 'papers-id' }] }; }
     } else {
