@@ -15,6 +15,12 @@
 
 ---
 
+## 2026-10-30 コメントは `_reader/comment_log.json` に全文で追記し、Mac が Notion の `comment` を置き換える
+- 決定: アプリは保存のたびにその論文のコメントの全文を `{id, comment, at}` で追記する。Mac は論文ごとに一番新しい行で Notion の `comment` を丸ごと置き換える。papers.json の `papers[]` に `comment` と `added` を足して一覧に出す。フィードの論文には付けない。並び替えは選んだ順だけで並べ、未読を先に出すのをやめる
+- 理由: 読了（`reading_log.json`）と同じ作りにすれば、送信・再試行・端末の上書きをそのまま使える。差分でなく全文なら、行の順や取りこぼしで文が壊れない。フィードの論文は Notion のページ ID が無く、登録時に Mac が合流させる処理が要る
+- 却下した案: `reading_log.json` にコメントを混ぜる（`apply_reading_log.py` の読み方を変えることになる）／フィードの論文にも書ける（本人 10/30「一覧の論文だけ」）
+- 決めた人: ユーザー（範囲と並び。2026-10-30）・Claude（形）
+
 ## 2026-10-28 今日の一本の PDF の名前は Mac が決め、アプリは papers.json の `pdf_name` を使う
 - 決定: アプリが `survey/` に入れる PDF の名前は、Mac（WorkSpace）が `insert_to_notion.py` の `sanitize_filename(題).pdf` で計算して `feed[].pdf_name` に入れる。アプリは名前を作らず、同名が `survey/` にあればアップロードしない
 - 理由: Notion に登録するときに名前が変わると、`papers.json` の `pdf.name` とずれて開けなくなる。規則を 2 か所に書くとずれるので、正を Mac 側の 1 か所にする
