@@ -40,6 +40,8 @@
   - [x] ~~PDF 待ちの初期表示を 10 本から **5 本**にする（残りは「残り n 本を表示」の中）~~
 - [x] ~~（本人に確かめてから Claude）並び替え・コメントを push して GitHub Pages に公開する~~ → 2026-10-30 本人「push していいよ」。push して Pages のビルドが `45afb83` で終わった
 - [ ] （本人・公開と WorkSpace 側の反映ができたら）iPhone で 1 本にコメントを書いて保存 → Notion の `comment` に入り、一覧のカードに出るかを確かめる
+- [ ] （本人）依頼書 `~/Dev/_system/docs/20261030-論文リーダー-Figure1要件.md` を WorkSpace の Claude に渡す（各論文の Figure 1 を画像にして papers.json の `figure` から指す。終わったら無作為 15 本の当たり外れを教えてもらう）
+- [ ] `/build` でブリーフ `docs/briefs/20261030-02-compact-list-figure.md` を Codex に作らせてレビューする（本人 2026-10-30: 一覧を図つきの詰めた行に・今のカードは残さない）
 
 ## 🟢 いつか
 
