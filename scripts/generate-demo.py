@@ -57,6 +57,33 @@ def make_icon(size):
     return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
 
 
+def make_figure(index, width, height):
+    colors = [(42, 125, 145), (211, 126, 54), (104, 90, 173), (57, 147, 101)]
+    raw = bytearray()
+    for y in range(height):
+        raw.append(0)
+        for x in range(width):
+            u, v = x / width, y / height
+            if index == 0:
+                shape = any((u - cx) ** 2 + (v - cy) ** 2 < .018 for cx, cy in [(0.25, 0.3), (0.7, 0.3), (0.5, 0.72)])
+                line = abs(v - .3) < .015 and .25 < u < .7
+            elif index == 1:
+                shape = .2 < u < .8 and any(lo < v < lo + .14 for lo in [.12, .42, .72])
+                line = abs(u - .5) < .015 and .2 < v < .85
+            elif index == 2:
+                shape = any(lo < u < lo + .12 and top < v < .85 for lo, top in [(.12, .6), (.34, .42), (.56, .23), (.78, .1)])
+                line = abs(v - .87) < .01 or abs(u - .08) < .01
+            else:
+                shape = abs(v - (.75 - .5 * u)) < .04 and .1 < u < .9
+                line = any(abs(u - p) < .004 or abs(v - p) < .004 for p in [.2, .4, .6, .8])
+            raw.extend(colors[index] if shape else (185, 197, 201) if line else (250, 251, 252))
+
+    def chunk(name, data):
+        return struct.pack('>I', len(data)) + name + data + struct.pack('>I', zlib.crc32(name + data) & 0xffffffff)
+
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+
+
 def main():
     demo = ROOT / 'demo'
     demo.mkdir(exist_ok=True)
@@ -67,7 +94,7 @@ def main():
     base = dict(authors='Demo Author A; Demo Author B（架空）', year=2026, venue='Fictional Reading Workshop', type='Demo', doi='10.0000/fictional-reader-demo', tags=['架空実験', '読書UI'], importance='★★', read_status='未読', bibtex='@misc{fictional_reader_demo,\n  title = {A Fictional Reading Garden},\n  author = {Demo Author},\n  year = {2026}\n}', pdf={'name': 'reader-demo.pdf', 'drive_id': None}, summary=summary)
     papers = [
         dict(base, id='demo-read', title='A Previously Read Paper', title_jp='既読の架空論文', read_status='既読', importance='★★★★★'),
-        dict(base, id='demo-long', title='B. A Fictional Reading Garden: Exploring Very Long Titles, Independent Scrolling, and Twelve Numbered Pages on a Small Screen', title_jp='架空の読書の庭で長い題と独立したスクロールを確かめる', importance='★★★★'),
+        dict(base, id='demo-long', title='B. A Fictional Reading Garden: Exploring Very Long Titles, Independent Scrolling, and Twelve Numbered Pages on a Small Screen', title_jp='架空の読書の庭で長い題と独立したスクロールを確かめる', authors='Demo Author A; Demo Author B; Demo Author C; Demo Author D; Demo Author E（全員架空）', importance='★★★★'),
         dict(base, id='demo-first', title='A. Imaginary Light Blocks', title_jp='架空の光の積み木', importance='★★★★', tags=['光の模型', '読書UI']),
         dict(base, id='demo-no-pdf', title='C. Notes Without a PDF', title_jp='PDF のない架空の記録', pdf=None, tags=['記録']),
         dict(base, id='demo-empty', title='D. An Empty Summary', title_jp='要約のない架空の論文', summary=[], tags=['空欄テスト'], authors='', year=None, venue='', type='', doi='', bibtex='', importance='★'),
@@ -76,12 +103,19 @@ def main():
     added_days = [20, 24, 28, 22, 26, 18]
     comments = {
         0: '架空の実験条件を読み返した。次は図と比べたい。',
-        2: '画面確認用の架空のコメントです。\n光の積み木の配置を比べる条件をメモしました。\n次に読むときは図の色分けを確認します。\nこの4行目は一覧では省略し、コメントの編集欄で全文を読めます。',
+        2: '画面確認用の架空の長いコメントです。一覧は1行で省略し、コメントの編集欄で全文を読めます。\n光の積み木の配置を比べる条件をメモしました。\n次に読むときは図の色分けを確認します。\nこの4行目も編集欄に残ります。',
         4: '要約がなくてもコメントは残せる。架空のメモ。',
     }
     for index, paper in enumerate(papers):
         paper['added'] = f'2026-10-{added_days[index]:02}T12:00:00+09:00'
         paper['comment'] = comments.get(index, '')
+    figures = demo / 'figures'
+    figures.mkdir(exist_ok=True)
+    for index, (width, height) in enumerate([(240, 180), (120, 240), (320, 100), (240, 180)]):
+        name = f'figure-{index + 1}.png'
+        (figures / name).write_bytes(make_figure(index, width, height))
+        papers[index]['figure'] = {'name': name, 'drive_id': f'demo:{name}'}
+    papers[4]['figure'] = None
     feed_base = dict(authors='Demo Author C（架空）', venue='Fictional Morning Workshop', year=2026,
                      doi='10.0000/fictional-morning-demo', url='', oa_pdf='',
                      ja='紙の庭に浮かぶ光のしおりを比べる架空の論文です。画面確認のために作った内容です。',

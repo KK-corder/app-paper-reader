@@ -1,4 +1,5 @@
 import { normalizeFeed } from './feed.mjs';
+import { normalizeFigure } from './figures.mjs';
 
 export const DEFAULT_PATH = 'University/01_reaserch/survey';
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -15,6 +16,7 @@ export function normalizeLibrary(data) {
       year: typeof p.year === 'number' && Number.isFinite(p.year) ? p.year : null,
       tags: Array.isArray(p.tags) ? p.tags.filter(t => typeof t === 'string') : [],
       pdf: p.pdf && string(p.pdf.name).trim() ? { name: p.pdf.name, drive_id: string(p.pdf.drive_id) || null } : null,
+      figure: normalizeFigure(p.figure),
       summary: Array.isArray(p.summary) ? p.summary.filter(s => s && typeof s === 'object').map(s => ({ heading: string(s.heading), text: string(s.text) })) : [],
     })),
   };

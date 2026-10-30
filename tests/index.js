@@ -8,3 +8,4 @@ import './feed.test.mjs';
 import './feed-app.test.mjs';
 import './feed-view.test.mjs';
 import './comments.test.mjs';
+import './figures.test.mjs';

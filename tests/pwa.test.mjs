@@ -17,7 +17,7 @@ test('service worker ignores Google and data before respondWith; caches only she
   await installed;
   assert.equal(cached.some(url => /cmaps|standard_fonts|demo|papers\.json/.test(url)), false);
   for (const url of cached) assert.ok(existsSync(new URL(`..${new URL(url).pathname.replace('/app-paper-reader', '')}`, import.meta.url)), url);
-  for (const url of ['https://www.googleapis.com/drive/v3/files/id?alt=media', 'https://accounts.google.com/gsi/client', 'https://accounts.google.com/o/oauth2/v2/auth', 'https://drive.google.com/file/id', 'https://example.test/app-paper-reader/demo/papers.json', 'https://example.test/app-paper-reader/demo/reader-demo.pdf', 'https://example.test/elsewhere/index.html']) {
+  for (const url of ['https://www.googleapis.com/drive/v3/files/id?alt=media', 'https://accounts.google.com/gsi/client', 'https://accounts.google.com/o/oauth2/v2/auth', 'https://drive.google.com/file/id', 'https://example.test/app-paper-reader/demo/papers.json', 'https://example.test/app-paper-reader/demo/reader-demo.pdf', 'https://example.test/app-paper-reader/demo/figures/figure-1.png', 'https://example.test/elsewhere/index.html']) {
     let intercepted = false;
     listeners.fetch({ request: { url, method: 'GET' }, respondWith: () => { intercepted = true; } });
     assert.equal(intercepted, false, url);

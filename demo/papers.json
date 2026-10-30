@@ -77,10 +77,14 @@
       "title": "A Previously Read Paper",
       "title_jp": "既読の架空論文",
       "added": "2026-10-20T12:00:00+09:00",
-      "comment": "架空の実験条件を読み返した。次は図と比べたい。"
+      "comment": "架空の実験条件を読み返した。次は図と比べたい。",
+      "figure": {
+        "name": "figure-1.png",
+        "drive_id": "demo:figure-1.png"
+      }
     },
     {
-      "authors": "Demo Author A; Demo Author B（架空）",
+      "authors": "Demo Author A; Demo Author B; Demo Author C; Demo Author D; Demo Author E（全員架空）",
       "year": 2026,
       "venue": "Fictional Reading Workshop",
       "type": "Demo",
@@ -154,7 +158,11 @@
       "title": "B. A Fictional Reading Garden: Exploring Very Long Titles, Independent Scrolling, and Twelve Numbered Pages on a Small Screen",
       "title_jp": "架空の読書の庭で長い題と独立したスクロールを確かめる",
       "added": "2026-10-24T12:00:00+09:00",
-      "comment": ""
+      "comment": "",
+      "figure": {
+        "name": "figure-2.png",
+        "drive_id": "demo:figure-2.png"
+      }
     },
     {
       "authors": "Demo Author A; Demo Author B（架空）",
@@ -231,7 +239,11 @@
       "title": "A. Imaginary Light Blocks",
       "title_jp": "架空の光の積み木",
       "added": "2026-10-28T12:00:00+09:00",
-      "comment": "画面確認用の架空のコメントです。\n光の積み木の配置を比べる条件をメモしました。\n次に読むときは図の色分けを確認します。\nこの4行目は一覧では省略し、コメントの編集欄で全文を読めます。"
+      "comment": "画面確認用の架空の長いコメントです。一覧は1行で省略し、コメントの編集欄で全文を読めます。\n光の積み木の配置を比べる条件をメモしました。\n次に読むときは図の色分けを確認します。\nこの4行目も編集欄に残ります。",
+      "figure": {
+        "name": "figure-3.png",
+        "drive_id": "demo:figure-3.png"
+      }
     },
     {
       "authors": "Demo Author A; Demo Author B（架空）",
@@ -304,7 +316,11 @@
       "title": "C. Notes Without a PDF",
       "title_jp": "PDF のない架空の記録",
       "added": "2026-10-22T12:00:00+09:00",
-      "comment": ""
+      "comment": "",
+      "figure": {
+        "name": "figure-4.png",
+        "drive_id": "demo:figure-4.png"
+      }
     },
     {
       "authors": "",
@@ -327,7 +343,8 @@
       "title": "D. An Empty Summary",
       "title_jp": "要約のない架空の論文",
       "added": "2026-10-26T12:00:00+09:00",
-      "comment": "要約がなくてもコメントは残せる。架空のメモ。"
+      "comment": "要約がなくてもコメントは残せる。架空のメモ。",
+      "figure": null
     },
     {
       "authors": "Demo Author A; Demo Author B（架空）",

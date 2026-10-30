@@ -154,4 +154,14 @@ export class Drive {
   pdfSource(id) {
     return { url: `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, headers: this.headers() };
   }
+  async figureBlob(figure, signal) {
+    const session = this.store.state.session;
+    if (!figure?.drive_id || !validSession(session)) return null;
+    const fetcher = this.fetcher;
+    const response = await fetcher(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(figure.drive_id)}?alt=media`, {
+      headers: { Authorization: `Bearer ${session.accessToken}` }, cache: 'no-store', signal,
+    });
+    if (!response.ok) throw new DriveError(response.status, '図を読み込めませんでした。');
+    return response.blob();
+  }
 }

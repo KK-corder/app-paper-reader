@@ -14,6 +14,10 @@ class Viewer {
   async open(source, page) { this.calls.push({ source, page }); this.callbacks.onReady(12); this.callbacks.onPage(page, 12); }
 }
 
+const rowText = row => row.children.find(n => n.className === 'paper-text');
+const rowTitle = row => rowText(row).children.find(n => n.className === 'muted paper-title-en')?.textContent
+  || rowText(row).children[0].children[0].textContent;
+
 const fixture = JSON.parse(await readFile(new URL('../demo/papers.json', import.meta.url)));
 function fakeFetch(request, options) {
   if (this !== undefined) throw new TypeError('fetch must be called without this');
@@ -178,20 +182,20 @@ test('demo read button updates details and rows without changing the selected or
   await dom.$('read-toggle').emit('click');
   assert.equal(dom.$('read-toggle').textContent, '未読に戻す');
   assert.equal(detailStatus(dom), '読了');
-  assert.equal(dom.$('paper-list').children[1].children[0].textContent, title);
-  assert.match(dom.$('paper-list').children.find(row => row.children[0].textContent === title).textContent, /読了/);
+  assert.equal(rowTitle(dom.$('paper-list').children[1]), title);
+  assert.match(dom.$('paper-list').children.find(row => rowTitle(row) === title).textContent, /読了/);
   assert.equal(app.store.state.reading.pending.length, 0);
   assert.equal(app.viewer.calls.length, 1, 'changing read status must not reopen the PDF');
   app.dispose();
   const reloaded = makeDOM('?demo=1', dom.storage);
   app = await startApp({ ...reloaded, Viewer, fetcher: fakeFetch });
-  await reloaded.$('paper-list').children.find(row => row.children[0].textContent === title).emit('click');
+  await reloaded.$('paper-list').children.find(row => rowTitle(row) === title).emit('click');
   assert.equal(reloaded.$('read-toggle').textContent, '未読に戻す');
   assert.equal(detailStatus(reloaded), '読了');
   await reloaded.$('read-toggle').emit('click');
   assert.equal(reloaded.$('read-toggle').textContent, '読了にする');
   assert.equal(detailStatus(reloaded), '未読');
-  assert.equal(reloaded.$('paper-list').children[1].children[0].textContent, title);
+  assert.equal(rowTitle(reloaded.$('paper-list').children[1]), title);
   app.dispose();
 });
 
@@ -355,7 +359,7 @@ test('demo filters combine status, all selected tags and search; reset, persiste
   $('filter').value = '読書ui';
   await $('filter').emit('input');
   count(1);
-  assert.equal($('paper-list').children[0].children[0].textContent, fixture.papers.find(paper => paper.id === 'demo-long').title);
+  assert.equal(rowTitle($('paper-list').children[0]), fixture.papers.find(paper => paper.id === 'demo-long').title);
   app.dispose();
   const reloaded = makeDOM('?demo=1', dom.storage);
   app = await startApp({ ...reloaded, Viewer, fetcher: fakeFetch });
@@ -416,7 +420,7 @@ test('demo four sorts persist across reload, filters/search/reset preserve sort 
   let app = await startApp({ ...dom, Viewer, fetcher: fakeFetch });
   t.after(() => app.dispose());
   let $ = dom.$;
-  const titles = () => $('paper-list').children.map(card => card.children[0].textContent);
+  const titles = () => $('paper-list').children.map(card => rowTitle(card));
   const title = id => fixture.papers.find(p => p.id === id).title;
   const orders = {
     'stars-desc': ['demo-read', 'demo-first', 'demo-long', 'demo-no-pdf', 'demo-empty', 'demo-missing'],
@@ -435,7 +439,7 @@ test('demo four sorts persist across reload, filters/search/reset preserve sort 
     await $('clear-filters').emit('click');
     assert.equal($('sort').value, sort);
     assert.deepEqual(titles(), ids.map(title));
-    await $('paper-list').children.find(card => card.children[0].textContent === title('demo-first')).emit('click');
+    await $('paper-list').children.find(card => rowTitle(card) === title('demo-first')).emit('click');
     await $('read-toggle').emit('click');
     assert.deepEqual(titles(), ids.map(title));
     await $('read-toggle').emit('click');
@@ -454,10 +458,10 @@ test('demo authors/comments, edit/save/list/restart/delete, length guard, draft 
   let app = await startApp({ ...dom, Viewer, fetcher: fakeFetch });
   t.after(() => app.dispose());
   let $ = dom.$;
-  const card = id => $('paper-list').children.find(n => n.children[0].textContent === fixture.papers.find(p => p.id === id).title);
-  const comment = id => card(id).children.find(n => n.className === 'paper-comment');
+  const card = id => $('paper-list').children.find(n => rowTitle(n) === fixture.papers.find(p => p.id === id).title);
+  const comment = id => rowText(card(id)).children.find(n => n.className === 'paper-comment');
   for (const p of fixture.papers) {
-    assert.equal(card(p.id).children.some(n => n.className === 'muted paper-authors'), !!p.authors);
+    assert.equal(rowText(card(p.id)).children.some(n => n.className === 'muted paper-authors'), !!p.authors);
     assert.equal(!!comment(p.id), !!p.comment);
     if (p.comment) assert.equal(comment(p.id).children[1].textContent, p.comment);
   }

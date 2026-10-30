@@ -7,6 +7,7 @@ import { createReading } from './reading.mjs';
 import { createComments, COMMENT_LIMIT, commentLength } from './comments.mjs';
 import { createFeed, demoFeedDates, feedPaper, japanDay, manualUploadMessage, validatePdf } from './feed.mjs';
 import { renderFeed } from './feed-view.mjs';
+import { createFigureLoader, observeFigures } from './figures.mjs';
 import { PdfViewer } from './pdf-viewer.mjs';
 
 export function element(document, tag, text, className) {
@@ -14,6 +15,32 @@ export function element(document, tag, text, className) {
   if (text !== undefined) node.textContent = text;
   if (className) node.className = className;
   return node;
+}
+
+export function renderPaperRow(document, paper, noPdf) {
+  const el = (tag, text, cls) => element(document, tag, text, cls);
+  const row = el('button', undefined, 'paper-row');
+  row.setAttribute('data-paper-id', paper.id);
+  const frame = el('span', undefined, 'paper-figure');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.append(el('span', [...paper.title_jp.trim()][0] || '図なし'));
+  const text = el('span', undefined, 'paper-text');
+  const heading = el('span', undefined, 'paper-heading');
+  heading.append(el('span', paper.title_jp || paper.title || '—', 'paper-title'));
+  const status = el('span', undefined, 'paper-status');
+  status.append(el('span', paper.importance || '—', 'stars'), el('span', paper.read_status || '—'));
+  if (noPdf) status.append(el('span', 'PDF なし', 'no-pdf'));
+  heading.append(status);
+  text.append(heading);
+  if (paper.title_jp && paper.title) text.append(el('span', paper.title, 'muted paper-title-en'));
+  if (paper.authors) text.append(el('span', paper.authors, 'muted paper-authors'));
+  if (paper.comment) {
+    const comment = el('span', undefined, 'paper-comment');
+    comment.append(el('small', 'コメント'), el('span', paper.comment));
+    text.append(comment);
+  }
+  row.append(frame, text);
+  return { row, frame };
 }
 
 export function renderInformation(document, paper, summary, details, clipboard) {
@@ -83,6 +110,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   let feedError = '';
   let uploading = false;
   let waitingExpanded = false;
+  let listScrollTop = 0;
   const feedMessages = new Map();
   const demoPdfs = new Map();
   const pdfAvailability = new Map();
@@ -90,9 +118,12 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   const pageKey = id => `${demo ? 'demo:' : ''}${id}`;
 
   function show(name) {
+    if (view === 'list') listScrollTop = $('library-scroll').scrollTop;
     view = name;
     for (const candidate of ['login', 'list', 'reader', 'settings']) $(`${candidate}-view`).hidden = candidate !== name;
     if (name === 'reader') viewer.schedule();
+    if (name === 'list') $('library-scroll').scrollTop = listScrollTop;
+    else figures.disconnect();
   }
   function loginUI(message = '') {
     $('login-message').textContent = !clientId ? 'config.js にクライアント ID を入れる' : message;
@@ -109,6 +140,13 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     if (view === 'settings') settingsUI();
   }
   const drive = new Drive(store, expired, fetcher);
+  const figureLoader = createFigureLoader(async (figure, signal) => {
+    if (!demo) return drive.figureBlob(figure, signal);
+    const response = await fetcher(new URL(`../demo/figures/${encodeURIComponent(figure.name)}`, import.meta.url), { cache: 'no-store', signal });
+    if (!response.ok) throw new Error('図を読み込めませんでした。');
+    return response.blob();
+  });
+  const figures = observeFigures({ Observer: window.IntersectionObserver, root: $('library-scroll'), loader: figureLoader, document });
   const reading = createReading(store, drive, { demo,
     onChange: () => { drawList(); if (activePaper) drawReading(); readingUI(); },
     onError: (message, error) => {
@@ -311,6 +349,8 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
 
   function drawList() {
+    const scrollTop = view === 'list' ? $('library-scroll').scrollTop : listScrollTop;
+    figures.disconnect();
     drawFeed();
     const filters = store.state.filters;
     for (const [status, button] of statusButtons) button.setAttribute('aria-pressed', String(filters.status === status));
@@ -323,24 +363,12 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     $('generated').textContent = library.generated ? `書き出し: ${library.generated}` : '書き出し日時: —';
     if (!papers.length) $('paper-list').append(el('p', '該当する論文はありません。', 'muted'));
     for (const paper of papers) {
-      const card = el('button', undefined, 'paper-card');
-      card.append(el('h2', paper.title || '—'), el('p', paper.title_jp || '—', 'muted'));
-      if (paper.authors) card.append(el('p', paper.authors, 'muted paper-authors'));
-      if (paper.comment) {
-        const comment = el('div', undefined, 'paper-comment');
-        comment.append(el('small', 'コメント'), el('p', paper.comment));
-        card.append(comment);
-      }
-      const meta = el('div', undefined, 'paper-meta');
-      meta.append(el('span', `${paper.year ?? '—'} · ${paper.venue || '—'}`), el('span', paper.importance || '—', 'stars'), el('span', paper.read_status || '—'));
-      if (!paper.pdf || pdfAvailability.get(paper.id) === null) meta.append(el('span', 'PDF なし', 'no-pdf'));
-      card.append(meta);
-      const tags = el('div', undefined, 'paper-tags');
-      for (const tag of paper.tags) tags.append(el('span', tag, 'badge'));
-      card.append(tags);
-      card.addEventListener('click', () => openPaper(library.papers.find(item => item.id === paper.id)));
-      $('paper-list').append(card);
+      const { row, frame } = renderPaperRow(document, paper, !paper.pdf || pdfAvailability.get(paper.id) === null);
+      row.addEventListener('click', () => openPaper(library.papers.find(item => item.id === paper.id)));
+      $('paper-list').append(row);
+      if (view === 'list') figures.observe(row, frame, paper.figure);
     }
+    if (view === 'list') $('library-scroll').scrollTop = scrollTop;
   }
 
   async function resolvePdf(paper, signal) {
@@ -556,6 +584,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
     if (!path) { $('settings-message').textContent = 'survey フォルダの道筋を入力してください。'; return; }
     listingController?.abort();
     pdfAvailability.clear();
+    figures.disconnect(); figureLoader.clear();
     library = { papers: [], feed: [], generated: '' };
     feedMessages.clear();
     drawList();
@@ -568,6 +597,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   $('logout').addEventListener('click', () => {
     if (uploading) return;
     listingController?.abort(); pdfController?.abort(); epoch++;
+    figures.disconnect(); figureLoader.clear();
     store.state.session = null; store.state.pendingLogin = null; store.save();
     clearTimeout(expiryTimer);
     viewer.close(); activePaper = null; library = { papers: [], feed: [], generated: '' }; pdfAvailability.clear();
@@ -599,7 +629,7 @@ export async function startApp({ window, document, fetcher = fetch, Viewer = Pdf
   }
   await flushRecords();
   if ('serviceWorker' in window.navigator) window.navigator.serviceWorker.register('./sw.js').catch(() => notify('アプリの殻を保存できませんでした。通信がある状態で利用してください。'));
-  return { store, viewer, openPaper, loadList, dispose() { clearTimeout(expiryTimer); window.removeEventListener('online', online); for (const url of demoPdfs.values()) URL.revokeObjectURL(url); listingController?.abort(); pdfController?.abort(); viewer.close(); } };
+  return { store, viewer, openPaper, loadList, dispose() { figures.disconnect(); figureLoader.clear(); clearTimeout(expiryTimer); window.removeEventListener('online', online); for (const url of demoPdfs.values()) URL.revokeObjectURL(url); listingController?.abort(); pdfController?.abort(); viewer.close(); } };
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') startApp({ window, document }).catch(() => {
