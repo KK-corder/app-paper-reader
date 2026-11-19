@@ -1,4 +1,4 @@
-# PaperReader
+# 論文リーダー（PaperReader）
 
 iPhone で PDF と要約を並べて論文を読む PWA
 
